@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  h1 #{title}
+  form(method='POST', action='/devices/add')
+    #form-group
+      label Nome:
+      input.form-control(name='name', type='text')
+    #form-group
+      label Description:
+      input.form-control(name='description', type='text')
+    br
+    input.btn.btn-primary(type='submit',value='Submit')

@@ -1,0 +1,23 @@
+extends layout
+
+block content
+	ul.list-group
+		each device, i in devices
+			li.list-group-item
+				.container
+				div
+					label= device.name
+				div
+					label ID:
+					= ' '+device._id
+				div
+					label Description:
+					= ' '+device.description
+				div
+					label Created at:
+					= ' '+device.created_at
+
+				if user
+					a.btn.btn-default(href='/devices/edit/'+device._id) Edit 
+					a.btn.btn-danger.delete-device(href='#',data-id=device._id) Delete
+	  
