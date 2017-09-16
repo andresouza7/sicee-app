@@ -6,7 +6,10 @@ let Telemetry = require('../models/telemetry');
 
 // Add route for get request
 router.get('/telemetry',function(req,res){
-	res.render('telemetry',{title:'Telemetry'});
+	Telemetry.find({}, function(err, telemetry_list) {
+		res.render('telemetry',{telemetry_list:telemetry_list});
+	}).limit(10);
+	
 });
 
 // Add Route for post request
