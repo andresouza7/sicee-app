@@ -12,7 +12,7 @@ mongoose.connect(config.database);
 let db = mongoose.connection;
 
 // Check connection
-db.once('open', function(){
+db.once('open', function(){ 
   console.log('Connected to MongoDB');
 });
 
@@ -29,7 +29,14 @@ let Article = require('./models/article');
 
 // Load View Engine
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+app.engine('ejs', require('express-ejs-extend'));
+app.set('view engine', 'ejs');
+app.engine('html',require('ejs').renderFile);
+
+
+// =============================================
+// MIDDLEWARE BEGINS HERE
+// pay attention to the order
 
 // Body Parser Middleware
 // parse application/x-www-form-urlencoded
@@ -83,6 +90,19 @@ app.get('*', function(req, res, next){
   next();
 });
 
+// Socket io Config
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+// Socket io Middleware
+io.on('connection', function(socket){
+  // console.log('a user connected');
+  socket.on('requestData', function(msg){
+    console.log('user is requesting data: '+msg);
+  });
+});
+// =============================================
+// MIDDLEWARE ENDS HERE
+
 // Home Route
 app.get('/', function(req, res){
   Article.find({}, function(err, articles){
@@ -108,6 +128,6 @@ app.use('/users', users);
 app.use('/api',api);
 
 // Start Server
-app.listen(3000, function(){
+server.listen(3000, function(){
   console.log('Server started on port 3000...');
 });

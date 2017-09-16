@@ -1,0 +1,23 @@
+extends layout
+
+block content
+	h1 Telemetry
+	.table-responsive
+		table.table.table-striped
+			thead
+				tr
+					th Time
+					th P
+					th Vrms
+					th Irms
+					th Dev. Id
+					
+			tbody
+				each telemetry, i in telemetry_list
+					tr
+						td=telemetry.timestamp
+						td=telemetry.power
+						td=telemetry.voltage
+						td=telemetry.current
+						td=telemetry.deviceId
+						

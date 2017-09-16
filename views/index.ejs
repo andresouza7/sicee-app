@@ -1,0 +1,27 @@
+<%# views/index.ejs %>
+ 
+<% extend('layout') %>
+
+<h1>Articles</h1>
+<ul class="list-group">
+  <li class="list-group-item">item 1</li>
+</ul>
+<input type="button" value="socketIo" id="iobutton">
+<script src="/socket.io/socket.io.js"></script>
+<script>
+$(document).ready(function(){
+    
+    $("#iobutton").click(function(){
+    	var socket = io();
+    	alert('clicked');
+        socket.emit('requestData', 'charts');
+    });
+});
+</script>
+<!-- block content
+  h1 #{title}
+  ul.list-group
+    each article, i in articles
+      li.list-group-item
+        a(href="/articles/"+article._id)=article.title
+ -->
