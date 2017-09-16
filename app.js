@@ -101,9 +101,11 @@ app.get('/', function(req, res){
 let articles = require('./routes/articles');
 let devices = require('./routes/devices');
 let users = require('./routes/users');
+let api = require('./routes/api');
 app.use('/articles', articles);
 app.use('/devices',devices);
 app.use('/users', users);
+app.use('/api',api);
 
 // Start Server
 app.listen(3000, function(){
