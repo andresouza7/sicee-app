@@ -168,6 +168,23 @@ app.use('/agendash', Agendash(agenda));
 app.use('/schedule', schedule);
 
 // Start Server
-server.listen(3000, function(){
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+var port = normalizePort(process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || '8080');
+server.listen(port, function(){
   console.log('Server started on port 3000...');
 });
