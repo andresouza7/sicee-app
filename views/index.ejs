@@ -1,23 +1,19 @@
 <%# views/index.ejs %>
- 
 <% extend('layout') %>
-
-<h1>Articles</h1>
-<ul class="list-group">
-  <li class="list-group-item">item 1</li>
-</ul>
-<input type="button" value="socketIo" id="iobutton">
-<script src="/socket.io/socket.io.js"></script>
-<script>
-$(document).ready(function(){
-    
-    $("#iobutton").click(function(){
-    	var socket = io();
-    	alert('clicked');
-        socket.emit('requestData', 'charts');
-    });
-});
+<script type="text/javascript">
+  
 </script>
+<h1>Home</h1>
+<ul class="list-group">
+  <li class="list-group-item">Consumo total no mes: <%= consumption %></li>
+</ul>
+<form action="">
+<input class="test" type="submit" value="Release"/> 
+</form>
+<table id="telemetry-data"></table>
+<textarea class="newdata" placeholder="new data will appear here"></textarea>
+<script src="/socket.io/socket.io.js"></script>
+
 <!-- block content
   h1 #{title}
   ul.list-group

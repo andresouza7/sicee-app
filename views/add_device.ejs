@@ -1,7 +1,20 @@
-extends layout
+<%# views/telemetry.ejs %>
+<% extend('layout') %>
 
-block content
-  h1 #{title}
+<h1>Add a Device</h1>
+<form method="POST" action="/devices/add">
+  <form-group>
+    <label>Name: </label>
+    <input class="form-control" name="name" type="text">
+  </form-group>
+  <form-group>
+    <label>Description: </label>
+    <input class="form-control" name="description" type="text">
+  </form-group>
+  <br>
+  <input class="btn btn-primary" type="submit" value="Submit">
+</form>
+  <!-- h1 #{title}
   form(method='POST', action='/devices/add')
     #form-group
       label Nome:
@@ -11,3 +24,4 @@ block content
       input.form-control(name='description', type='text')
     br
     input.btn.btn-primary(type='submit',value='Submit')
+ -->

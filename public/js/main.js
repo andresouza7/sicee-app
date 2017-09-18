@@ -33,3 +33,22 @@ $(document).ready(function(){
     });
   });
 });
+
+// $(document).ready(function(){
+//   $('.test').on('click', function(e){
+//     alert('jskdf');
+//   });
+// });
+
+// LISTENING TO EVENT IN SOCKET IO
+$(function () {
+    var socket = io();
+    $('.test').on('click', function(e){
+      socket.emit('chat message', 'testing...');
+    });
+    socket.on('chat message', function(msg){
+      alert('New data from server:<br>'+msg);
+    });
+  });
+
+// $('#m').val()

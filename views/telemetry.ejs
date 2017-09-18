@@ -1,23 +1,35 @@
-extends layout
+<%# views/telemetry.ejs %>
+ <% extend('layout') %>
 
-block content
-	h1 Telemetry
-	.table-responsive
-		table.table.table-striped
-			thead
-				tr
-					th Time
-					th P
-					th Vrms
-					th Irms
-					th Dev. Id
-					
-			tbody
-				each telemetry, i in telemetry_list
-					tr
-						td=telemetry.timestamp
-						td=telemetry.power
-						td=telemetry.voltage
-						td=telemetry.current
-						td=telemetry.deviceId
-						
+<h1>Telemetry</h1>
+<div class="table-responsive">
+	<table class="table table-striped" id="telemetry-data">
+		<thead>
+			<tr>
+				<th>Time</th>
+				<th>P</th>
+				<th>Vrms</th>
+				<th>Irms</th>
+				<th>Dev. Id</th>
+			</tr>
+		</thead>
+		<tbody>
+			<% telemetry_list.forEach(function(item) { %>
+		    <tr>
+		    	<td><%= item.timestamp %></td>
+		    	<td><%= item.power %></td>
+		    	<td><%= item.voltage %></td>
+		    	<td><%= item.current %></td>
+		    	<td><%= item.deviceId %></td>
+		    </tr>
+		    <% }); %>
+		</tbody>
+	</table>
+</div> 
+
+<!-- td=telemetry.timestamp
+td=telemetry.power
+td=telemetry.voltage
+td=telemetry.current
+td=telemetry.deviceId
+-->

@@ -18,6 +18,7 @@ router.get('/', function(req, res){
       if(err){
         console.log(err);
       } else {
+        console.log(devices);
         res.render('devices', {
           title:'Devices',
           devices: devices
@@ -120,16 +121,16 @@ router.delete('/:id', function(req, res){
 });
 
 // Get Single Article
-router.get('/:id', function(req, res){
-  Article.findById(req.params.id, function(err, article){
-    User.findById(article.author, function(err, user){
-      res.render('article', {
-        article:article,
-        author: user.name
-      });
-    });
-  });
-});
+// router.get('/:id', function(req, res){
+//   Article.findById(req.params.id, function(err, article){
+//     User.findById(article.author, function(err, user){
+//       res.render('article', {
+//         article:article,
+//         author: user.name
+//       });
+//     });
+//   });
+// });
 
 // Access Control
 function ensureAuthenticated(req, res, next){

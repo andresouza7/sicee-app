@@ -93,39 +93,70 @@ app.get('*', function(req, res, next){
 // Socket io Config
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
+
 // Socket io Middleware
 io.on('connection', function(socket){
   // console.log('a user connected');
-  socket.on('requestData', function(msg){
-    console.log('user is requesting data: '+msg);
+  socket.on('chat message', function(msg){
+    console.log('msg: '+msg);
+    io.emit('chat message', msg);
   });
 });
+
+app.post('/', function(req, res){
+  console.log(req.body);
+  io.emit('chat message', req.body);
+});
+
+// AGENDA
+const Agenda = require('agenda');
+var mongoConnectionString = config.database;
+var agenda = new Agenda({db: {address: mongoConnectionString}});
+
+// RESUME STOPEED TASKS
+agenda.on('ready', function() {
+    agenda.jobs({nextRunAt: {$ne:null}}, function(err, jobs) {
+    console.log(jobs[0].attrs.name);
+    agenda.define(jobs[0].attrs.name, function(job, done) {
+      // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
+      console.log('initiating task...');
+      done();
+    });
+    agenda.every(jobs[0].attrs.repeatInterval, jobs[0].attrs.name);
+    agenda.processEvery('10 seconds');
+    agenda.start();
+  });
+});
+
+
 // =============================================
 // MIDDLEWARE ENDS HERE
 
 // Home Route
-app.get('/', function(req, res){
-  Article.find({}, function(err, articles){
-    if(err){
-      console.log(err);
-    } else {
-      res.render('index', {
-        title:'Articles',
-        articles: articles
-      });
-    }
-  });
-});
+// app.get('/', function(req, res){
+//   Article.find({}, function(err, articles){
+//     if(err){
+//       console.log(err);
+//     } else {
+//       res.render('index', {
+//         title:'Articles',
+//         articles: articles
+//       });
+//     }
+//   });
+// });
 
 // Route Files
+let index = require('./routes/index');
 let articles = require('./routes/articles');
 let devices = require('./routes/devices');
 let users = require('./routes/users');
 let api = require('./routes/api');
+app.use('/', index);
 app.use('/articles', articles);
-app.use('/devices',devices);
+app.use('/devices', devices);
 app.use('/users', users);
-app.use('/api',api);
+app.use('/api', api);
 
 // Start Server
 server.listen(3000, function(){

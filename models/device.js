@@ -16,4 +16,4 @@ let deviceSchema = mongoose.Schema({
   }
 });
 
-let Device = module.exports = mongoose.model('Device', deviceSchema);
+let Device = module.exports = mongoose.model('Device', deviceSchema, 'devices');

@@ -7,7 +7,7 @@ let telemetrySchema = mongoose.Schema({
     required: true
   },
   power:{
-    type: String,
+    type: Number,
     required: true
   },
   voltage:{
@@ -23,5 +23,5 @@ let telemetrySchema = mongoose.Schema({
     required: true
   }
 });
-
-let Telemetry = module.exports = mongoose.model('Telemetry', telemetrySchema);
+// Thir argument will be the collection name in the database
+let Telemetry = module.exports = mongoose.model('Telemetry', telemetrySchema, 'telemetry');

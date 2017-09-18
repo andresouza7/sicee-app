@@ -18,10 +18,17 @@
             <li><a href="/">Home</a></li>
             <li><a href="/devices">Devices</a></li>
             <li><a href="/api/telemetry">Telemetry</a></li>
+            <% if (user) { %>
+              <li><a href="/devices/add">Manage devices</a></li>
+            <% }  %>
           </ul>
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="/users/register">Register</a></li>
-            <li><a href="/users/login">Login</a></li>
+              <% if (user) { %>
+                <li><a href="/users/logout">Logout</a></li>
+              <% } else { %>
+              <li><a href="/users/register">Register</a></li>
+              <li><a href="/users/login">Login</a></li>
+              <% } %>
           </ul>
         </div>
       </div>
