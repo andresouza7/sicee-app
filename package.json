@@ -1,7 +1,7 @@
 {
-  "name": "nodekb",
+  "name": "sicee-app",
   "version": "1.0.0",
-  "description": "Simple knowledgebase app",
+  "description": "Iot app to track electricity consumption",
   "main": "app.js",
   "scripts": {
     "start": "node app"
