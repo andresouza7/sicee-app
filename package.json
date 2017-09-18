@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "agenda": "^1.0.0",
+    "agendash": "^0.4.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.17.2",
     "connect-flash": "^0.1.1",

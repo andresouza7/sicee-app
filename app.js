@@ -109,24 +109,29 @@ app.post('/', function(req, res){
 });
 
 // AGENDA
-const Agenda = require('agenda');
-var mongoConnectionString = config.database;
-var agenda = new Agenda({db: {address: mongoConnectionString}});
+// const Agenda = require('agenda');
+// var mongoConnectionString = config.database;
+// var agenda = new Agenda({db: {address: mongoConnectionString}});
 
-// RESUME STOPEED TASKS
-agenda.on('ready', function() {
-    agenda.jobs({nextRunAt: {$ne:null}}, function(err, jobs) {
-    console.log(jobs[0].attrs.name);
-    agenda.define(jobs[0].attrs.name, function(job, done) {
-      // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-      console.log('initiating task...');
-      done();
-    });
-    agenda.every(jobs[0].attrs.repeatInterval, jobs[0].attrs.name);
-    agenda.processEvery('10 seconds');
-    agenda.start();
-  });
-});
+// // RESUME STOPEED TASKS
+// agenda.on('ready', function() {
+//     agenda.jobs({nextRunAt: {$ne:null}}, function(err, jobs) {
+//     console.log(jobs[0].attrs.name);
+//     agenda.define(jobs[0].attrs.name, function(job, done) {
+//       // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
+//       console.log('initiating task...');
+//       done();
+//     });
+//     agenda.every(jobs[0].attrs.repeatInterval, jobs[0].attrs.name);
+//     agenda.processEvery('10 seconds');
+//     agenda.start();
+//   });
+// });
+
+var Agenda = require('agenda');
+var Agendash = require('agendash');
+
+var agenda = new Agenda({db: {address: config.database}});
 
 
 // =============================================
@@ -152,11 +157,15 @@ let articles = require('./routes/articles');
 let devices = require('./routes/devices');
 let users = require('./routes/users');
 let api = require('./routes/api');
+let schedule = require('./routes/agenda');
+
 app.use('/', index);
 app.use('/articles', articles);
 app.use('/devices', devices);
 app.use('/users', users);
 app.use('/api', api);
+app.use('/agendash', Agendash(agenda));
+app.use('/schedule', schedule);
 
 // Start Server
 server.listen(3000, function(){
