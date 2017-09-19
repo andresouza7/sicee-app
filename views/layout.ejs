@@ -7,50 +7,84 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/style.css">
   </head>
   <body>
-    <nav class="navbar navbar-inverse">
-      <div class="container">
-        <div class="navbar-header">
-          <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a class="navbar-brand" href="/">SICEE</a>
-        </div>
-        <div class="collapse navbar-collapse" id="navbar">
-          <ul class="nav navbar-nav">
-            <li><a href="/">Home</a></li>
-            <li><a href="/devices">Devices</a></li>
-            <li><a href="/api/telemetry">Telemetry</a></li>
-            <li><a href="/agendash">Schedule</a></li>
-            <% if (user) { %>
-              <li><a href="/devices/add">Manage devices</a></li>
-            <% }  %>
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-              <% if (user) { %>
-                <li><a href="/users/logout">Logout</a></li>
-              <% } else { %>
-              <li><a href="/users/register">Register</a></li>
-              <li><a href="/users/login">Login</a></li>
-              <% } %>
-          </ul>
-        </div>
+  <div class="container">
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+      <a class="navbar-brand" href="/">SICEE</a>
+      <button class="navbar-toggler d-lg-none" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbar">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="/">Dashboard <span class="sr-only">(current)</span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/devices">Dispositivos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/telemetry">Telemetria</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/agendash">Programações</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Sobre</a>
+          </li>
+          <% if (user) { %>
+            <li class="nav-item"><a class="nav-link" href="/devices/add">Configurar dispositivos</a></li>
+          <% }  %>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <% if (user) { %>
+            <li class="nav-item"><a class="nav-link" href="/users/logout">Logout</a></li>
+          <% } else { %>
+            <li class="nav-item"><a class="nav-link" href="/users/register">Registrar</a></li>
+            <li class="nav-item"><a class="nav-link" href="/users/login">Login</a></li>
+          <% } %>
+        </ul>
       </div>
     </nav>
-    <div class="container">
+
+    
+    <div class="container-fluid"><br><br><br>
       <%- content %>
+     
       <!-- <br> -->
       <hr>
       <footer>
-        <p>UNIVERSIDADE FEDERAL DO AMAPÁ</p>
-        <p>ENGENHARIA ELÉTRICA</p>
-        <p>Trabalho de Conclusão de Curso</p>
-        <p>Acadêmicos: André Souza / Lucas Rodrigues</p>
-        <p>Copyright &copy; 2017</p>
+      <div class="row justify-content-md-center">
+        <div class="col col-lg-2">
+          <img src="/img/unifaplogo.png" class="rounded float-right" alt="unifap" width="120px" height="100px">
+        </div>
+        <div class="col-md-auto">
+          <p style="font-size:12px">
+          ENGENHARIA ELÉTRICA<br>
+          Trabalho de Conclusão de Curso<br>
+          André Souza @ souza.andre1993@gmail.com<br>
+          Lucas Rodrigues<br>
+          Copyright &copy; 2017<br>
+        </p>
+        </div>
+      </div>
       </footer>
     </div>
     <script src="/bower_components/jquery/dist/jquery.js"> </script>
     <script src="/bower_components/bootstrap/dist/js/bootstrap.js"></script>
     <script src="/js/main.js"> </script>
+    <script src="/js/dashboardFeed.js"> </script>
+    <script src="/js/telemetryFeed.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.js"></script>
+
+    <script type="text/javascript">
+      // var c1 = document.getElementById("chart1");
+      // weeklyConsumptionChart(c1);
+      var c2 = document.getElementById("chart2");
+      weeklyConsumptionPerDeviceChart(c2);
+    </script>
   </body>
 </html>

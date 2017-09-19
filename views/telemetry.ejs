@@ -1,12 +1,22 @@
 <%# views/telemetry.ejs %>
  <% extend('layout') %>
 
-<h1>Telemetry</h1>
+<h1>Telemetria</h1>
+<div class="dropdown">
+  <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    Dispositivos
+  </button>
+  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+    <a class="dropdown-item" href="#">Action</a>
+    <a class="dropdown-item" href="#">Another action</a>
+    <a class="dropdown-item" href="#">Something else here</a>
+  </div>
+</div>
 <div class="table-responsive">
 	<table class="table table-striped" id="telemetry-data">
-		<thead>
+		<thead class="thead-inverse">
 			<tr>
-				<th>Time</th>
+				<th>Horário</th>
 				<th>P</th>
 				<th>Vrms</th>
 				<th>Irms</th>

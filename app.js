@@ -106,6 +106,7 @@ io.on('connection', function(socket){
 app.post('/', function(req, res){
   console.log(req.body);
   io.emit('chat message', req.body);
+  res.send(200);
 });
 
 // AGENDA
@@ -158,12 +159,14 @@ let devices = require('./routes/devices');
 let users = require('./routes/users');
 let api = require('./routes/api');
 let schedule = require('./routes/agenda');
+let telemetry = require('./routes/telemetry');
 
 app.use('/', index);
 app.use('/articles', articles);
 app.use('/devices', devices);
 app.use('/users', users);
 app.use('/api', api);
+app.use('/telemetry', telemetry);
 app.use('/agendash', Agendash(agenda));
 app.use('/schedule', schedule);
 

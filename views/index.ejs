@@ -1,9 +1,91 @@
 <%# views/index.ejs %>
 <% extend('layout') %>
-<script type="text/javascript">
-  
-</script>
+
 <h1>Dashboard</h1>
+
+<div class="container">
+  <div class="row">
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
+        <div class="card-header" id="title_totalpower">Potência instantânea</div>
+        <div class="card-body">
+          <h4 class="card-title" id="value_totalpower"></h4>
+          <p class="card-text">++</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
+        <div class="card-header" id="title_totalconsumption">Consumo acumulado</div>
+        <div class="card-body">
+          <h4 class="card-title" id="value_totalconsumption"></h4>
+          <p class="card-text">--</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
+        <div class="card-header" id="title_currentbill">Conta até agora</div>
+        <div class="card-body">
+          <h4 class="card-title" id="value_currentbill">R$ 21,43</h4>
+          <p class="card-text">++</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
+        <div class="card-header" id="title_estimatedbill">Projeção para o mês</div>
+        <div class="card-body">
+          <h4 class="card-title" id="value_estimatedbill">R$ 321,3</h4>
+          <p class="card-text">+++++</p>
+        </div>
+      </div>
+    </div>
+    <div class="w-100"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="charjs-size-monitor">
+      <div class="col">
+        <canvas id="chart1" width="600px" height="300px"></canvas>
+      </div>
+    </div>
+    <div class="charjs-size-monitor">
+      <div class="col">
+        <canvas id="chart2" width="400" height="250"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<br>
+<div class="container">
+  <div class="row">
+    <div class="col">
+      <div class="alert alert-danger" role="alert">
+        A tensão no medidor 1 está em 102 V, verifique o estado da rede elétrica - 17, set 17
+      </div>
+      <div class="alert alert-warning" role="alert">
+        Consumo excessivo detectado no <a href="#" class="alert-link">Medidor 3</a>. Clique para planejar rotina econômica - 19, set 17
+      </div>
+      <div class="alert alert-danger" role="alert">
+        3 picos anormais de corrente registrados pelo medidor 2. <a href="#" class="alert-link">Ver os detalhes</a>  - 15, set 17
+      </div>  
+    </div> 
+    <div class="col">
+      <div class="alert alert-primary" role="alert">
+        A média de consumo está de acordo com a meta programada, continue assim para não ultrapassar os R$ 400,0 este mês.
+      </div>
+      <div class="alert alert-primary" role="alert">
+        Consumo 10% a menos do que o esperado para hoje.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<br>
 <p>Essa vai ser a dashboard. É onde vai ficar a maioria das informações disponíveis pro usuáro.
 Os gráficos, estatísticas, botões de controle, vai ficar tudo aqui. As outras páginas são pra configurações adicionais.
 No link de schedule é que vai ficar as programações de rotina, pra automatizar os desligamentos.</p>
@@ -27,6 +109,8 @@ No link de schedule é que vai ficar as programações de rotina, pra automatiza
 </form>
 <table id="telemetry-data"></table>
 <script src="/socket.io/socket.io.js"></script>
+
+
 
 <!-- block content
   h1 #{title}

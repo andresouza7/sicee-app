@@ -1,15 +1,15 @@
 <%# views/telemetry.ejs %>
 <% extend('layout') %>
 
-<h1>Devices</h1>
+<h1>Dispositivos</h1>
 <ul class="list-group">
 	<% devices.forEach(function(device) { %>
 	<li class="list-group-item">
 		<div class="container">
-			<div><label><%= device.name %></label></div>
-			<div><label>ID: </label><%= device._id %></div>
-			<div><label>Description: </label><%= device.description %></div>
-			<div><label>Created at: </label><%= device.created_at %></div>
+			<div><label>Nome:</label><b><%= ' '+device.name %></b></div>
+			<div><label>Token: </label><%= ' '+device._id %></div>
+			<div><label>Descrição: </label><%= ' '+device.description %></div>
+			<div><label>Adicionado em: </label><%= ' '+device.created_at %></div>
 		
 	<% if (user) { %>
 		<a class="btn btn-default" href="/devices/edit/<%=device._id %>">Edit</a>
