@@ -11,9 +11,7 @@ router.get('/', function(req, res){
       if(err){
         console.log(err);
       } else {
-        res.render('index', {
-         	consumption: consumption[0].total
-        });
+        res.render('index', {});
       }
     });
 });
