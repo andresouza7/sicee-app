@@ -3,12 +3,27 @@
 <script type="text/javascript">
   
 </script>
-<h1>Home</h1>
+<h1>Dashboard</h1>
+<p>Essa vai ser a dashboard. É onde vai ficar a maioria das informações disponíveis pro usuáro.
+Os gráficos, estatísticas, botões de controle, vai ficar tudo aqui. As outras páginas são pra configurações adicionais.
+No link de schedule é que vai ficar as programações de rotina, pra automatizar os desligamentos.</p>
+<p>Abaixo só uma ideia dos dados que vão ser mostrados.</p>
 <ul class="list-group">
-  <li class="list-group-item">Consumo total</li>
+  <li class="list-group-item">Potência instantânea</li>
+  <li class="list-group-item">Dispositivos ligados</li>
+  <li class="list-group-item">Consumo até o momento</li>
+  <li class="list-group-item">Valor da conta até o momento</li>
+  <li class="list-group-item">Consumo estimado para o mês</li>
+  <li class="list-group-item">Conta estimada para o mês</li>
+</ul>
+<hr>
+<p>Aqui em forma de gráficos:</p>
+<ul class="list-group">
+  <li class="list-group-item">Consumo por dispositivo</li>
+  <li class="list-group-item">Custo por dispositivo</li>
 </ul>
 <form action="">
-<input class="test" type="submit" value="send data to endpoint"/> 
+<!-- <input class="test" type="submit" value="send data to endpoint"/>  -->
 </form>
 <table id="telemetry-data"></table>
 <script src="/socket.io/socket.io.js"></script>
