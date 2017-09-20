@@ -6,7 +6,7 @@ let totalpowerSchema = mongoose.Schema({
     required: true
   },
   timestamp:{
-    type: Number,
+    type: Date,
     required: true
   },
 });

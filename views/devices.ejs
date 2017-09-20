@@ -1,7 +1,7 @@
 <%# views/telemetry.ejs %>
 <% extend('layout') %>
 
-<h1>Dispositivos</h1>
+<h1 onload="">Dispositivos</h1>
 <ul class="list-group">
 	<% devices.forEach(function(device) { %>
 	<li class="list-group-item">
@@ -19,3 +19,5 @@
 	</li>
 	<% }); %>
 </ul>
+<script>testfunc();
+</script>

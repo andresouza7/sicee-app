@@ -1,3 +1,7 @@
+function testfunc() {
+  alert('just a test');
+}
+
 $(document).ready(function(){
   $('.delete-article').on('click', function(e){
     $target = $(e.target);

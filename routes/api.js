@@ -10,10 +10,12 @@ let Telemetry = require('../models/telemetry');
 let Consumption = require('../models/consumption');
 // TotalPower Model
 let TotalPower = require('../models/total_power');
+// Notification Model
+let Notification = require('../models/notification');
 
 // GET LATEST TELEMETRY
 router.get('/telemetry',function(req,res){
-	Telemetry.find({}).sort({$timestamp:-1}).limit(10).exec(function(err, telemetry_list) {
+	Telemetry.find({}).sort({timestamp:-1}).limit(8).exec(function(err, telemetry_list) {
 		res.json(telemetry_list);
 		console.log(telemetry_list);
 	});
@@ -175,7 +177,7 @@ router.get('/deviceconsumptionforperiod', function(req, res){
 	}
 });
 
-// Add Route for post request
+// FUNCTIONS FOR PROCESSING TELEMETRY DATA
 router.post('/telemetry', function(req, res){
 // === UPDATE DB USING QUERY PARAMETERS ===
 	// let deviceId = req.query.deviceId;
@@ -226,7 +228,50 @@ router.post('/telemetry', function(req, res){
 		telemetry_list.push(telemetry);
 		consumption_list.push(consumption);
 
-		
+		// DETECT IF VOLTAGE IS 127V OR 220V
+		const voltage_max_threshold_127 = 135.0;
+		const voltage_min_threshold_127 = 110.0;
+		const voltage_max_threshold_220 = 230.0;
+		const voltage_min_threshold_220 = 210.0;
+		if (item.voltage < 160) { // voltage is supposed to be 127v
+			if (item.voltage < voltage_min_threshold_127 || item.voltage > voltage_max_threshold_127) {
+				let notification = new Notification();
+				notification.nature = 'voltage';
+				notification.description = 'A tensão está em '+item.voltage+' V. Pode haver um problema neste ponto da rede elétrica';
+				notification.save(function(err){
+					if (err) {
+						console.log(err);
+						return;
+					}
+				});
+			}
+		} else { // voltage is supposed to be 220v
+			if (item.voltage < voltage_min_threshold_220 || item.voltage > voltage_max_threshold_220) {
+				let notification = new Notification();
+				notification.nature = 'voltage';
+				notification.description = 'A tensão está em '+item.voltage+' V. Pode haver um problema neste ponto da rede elétrica';
+				notification.save(function(err){
+					if (err) {
+						console.log(err);
+						return;
+					}
+				});
+			}
+		}
+
+		// DETECT IF CURRENT IS TOO HIGH
+		const current_max_threshold = 15.0;
+		if (item.current > current_max_threshold) {
+			let notification = new Notification();
+			notification.nature = 'current';
+			notification.description = 'Valor alto de corrente registrado: '+item.current+' A';
+			notification.save(function(err){
+				if (err) {
+					console.log(err);
+					return;
+				}
+			});
+		}
 	});
 
 	var total_power = 0;
@@ -243,7 +288,7 @@ router.post('/telemetry', function(req, res){
     	}
     });
 	
-	
+	// SAVE DEVICES TELEMETRY READINGS TO DATABASE
     Telemetry.insertMany(telemetry_list,function(err){
     	if(err){
     		console.log(err);
@@ -252,14 +297,7 @@ router.post('/telemetry', function(req, res){
     	}
     });
 
-    Telemetry.insertMany(telemetry_list,function(err){
-    	if(err){
-    		console.log(err);
-    	} else {
-    		res.send('Telemetry uploaded to database ;)\n'+telemetry_list);
-    	}
-    });
-
+    // SAVA DEVICES CONSUMPTION DATA TO DATABASE
     Consumption.insertMany(consumption_list,function(err){
     	if(err){
     		console.log(err);
@@ -267,6 +305,10 @@ router.post('/telemetry', function(req, res){
     		// res.send('Telemetry uploaded to database ;)\n'+consumption_list);
     	}
     });
+
+    // LOOK FOR VOLTAGE OR CURRENT ANOMALY IN TELEMETRY DATA
+
+
 
     var request = require('request');
 	request.post({
