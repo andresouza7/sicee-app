@@ -2,12 +2,13 @@
 <% extend('layout') %>
 
 <h1 onload="">Dispositivos</h1>
+<p>Configurar o ID de cada dispositivo no Gateway para conectar com o servidor</p>
 <ul class="list-group">
 	<% devices.forEach(function(device) { %>
 	<li class="list-group-item">
 		<div class="container">
 			<div><label>Nome:</label><b><%= ' '+device.name %></b></div>
-			<div><label>Token: </label><%= ' '+device._id %></div>
+			<div><label>ID: </label><%= ' '+device._id %></div>
 			<div><label>Descrição: </label><%= ' '+device.description %></div>
 			<div><label>Adicionado em: </label><%= ' '+device.created_at %></div>
 		
@@ -19,5 +20,6 @@
 	</li>
 	<% }); %>
 </ul>
+<script src="/js/dashboardFeed.js"> </script>
 <script>testfunc();
 </script>

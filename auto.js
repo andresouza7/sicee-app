@@ -10,7 +10,7 @@ function genNextValue(prevValue, min, max) {
 // write data to request body
 setInterval(function(){
     // this will run after every 5 seconds
-    const minPower = 100, maxPower = 1300, minVoltage = 115, maxVoltage = 125, minCurrent = 0.2, maxCurrent = 20;
+    const minPower = 100, maxPower = 1300, minVoltage = 115, maxVoltage = 125, minCurrent = 0.2, maxCurrent = 10;
     
 
 	var datapoints = [];

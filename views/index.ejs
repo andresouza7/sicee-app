@@ -1,6 +1,7 @@
 <%# views/index.ejs %>
 <% extend('layout') %>
 
+
 <h1>Dashboard</h1>
 
 <div class="container">
@@ -85,7 +86,7 @@
   </div>
 </div>
 
-<br>
+<!-- <br>
 <p>Essa vai ser a dashboard. É onde vai ficar a maioria das informações disponíveis pro usuáro.
 Os gráficos, estatísticas, botões de controle, vai ficar tudo aqui. As outras páginas são pra configurações adicionais.
 No link de schedule é que vai ficar as programações de rotina, pra automatizar os desligamentos.</p>
@@ -104,12 +105,14 @@ No link de schedule é que vai ficar as programações de rotina, pra automatiza
   <li class="list-group-item">Consumo por dispositivo</li>
   <li class="list-group-item">Custo por dispositivo</li>
 </ul>
-<form action="">
+<form action=""> -->
 <!-- <input class="test" type="submit" value="send data to endpoint"/>  -->
-</form>
-<table id="telemetry-data"></table>
-<script src="/socket.io/socket.io.js"></script>
+<!-- </form>
+<table id="telemetry-data"></table> -->
 
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/dashboardFeed.js"> </script>
+<script>testfunc();</script>
 
 
 <!-- block content

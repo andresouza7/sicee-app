@@ -97,15 +97,15 @@ var io = require('socket.io')(server);
 // Socket io Middleware
 io.on('connection', function(socket){
   // console.log('a user connected');
-  socket.on('chat message', function(msg){
+  socket.on('notification', function(msg){
     console.log('msg: '+msg);
-    io.emit('chat message', msg);
+    io.emit('notification', msg);
   });
 });
 
 app.post('/', function(req, res){
   console.log(req.body);
-  io.emit('chat message', req.body);
+  io.emit('notification', JSON.stringify(req.body));
   res.send(200);
 });
 
