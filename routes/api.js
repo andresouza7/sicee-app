@@ -15,6 +15,20 @@ let Notification = require('../models/notification');
 // Device Model
 let Device = require('../models/device');
 
+// GET DEVICES
+router.get('/devices', function(req, res){
+	Device.
+	  find({}).
+	  exec(function(err, devices){
+		if(err){
+		  console.log(err);
+		} else {
+		  console.log(devices);
+		  res.json(devices);
+		}
+	  });
+  });
+
 // SMS MESSAGING SERVICE
 router.post('/smsAlert',function(req, res){
 	var accountSid = 'ACb0e73e47de7ee5b38ae6017ce90d5dff'; // Your Account SID from www.twilio.com/console
@@ -34,14 +48,80 @@ router.post('/smsAlert',function(req, res){
 
 // GET LATEST TELEMETRY
 router.get('/telemetry',function(req,res){
-	Telemetry.find({}).sort({timestamp:-1}).limit(8).exec(function(err, telemetry_list) {
-		res.json(telemetry_list);
-		console.log(telemetry_list);
+	var getTelemetry = function (callback) {
+		Device.find({}).count().exec(function (err, numberOfDevices) {
+			callback(numberOfDevices);
+		});
+	}
+	
+	getTelemetry(function(numberOfDevices) {
+		console.log('total of devices: '+numberOfDevices);
+		console.log('Id received from query: '+req.query.deviceId);
+		let deviceId = req.query.deviceId;
+		// let ObjectId = require('mongodb').ObjectId;
+		if(typeof deviceId != 'undefined') { // DISPLAYING DATA FOR SPECIFIC DEVICE
+			Telemetry.find({deviceId:deviceId}).sort({timestamp:-1}).limit(8).exec(function(err, telemetry_list) {
+				res.json(telemetry_list.reverse());
+				// console.log(telemetry_list);
+			});
+		} else if (typeof deviceId == 'undefined')  { // DISPLAYING DATA FOR ALL DEVICES
+			Telemetry.find({}).sort({timestamp:-1}).limit(numberOfDevices).exec(function(err, telemetry_list) {
+				res.json(telemetry_list.reverse());
+				console.log(telemetry_list);
+			});
+		}
 	});
 });
 
 
 // SCHEDULE EVENTS
+// TURN ON
+router.post('/schedule/on_once',function(req,res){
+	console.log(req.body);
+	let deviceName = req.body.deviceName;
+	let startTime = req.body.startTime;
+	var mongoConnectionString = config.database;
+	var agenda = new Agenda({db: {address: mongoConnectionString}});
+	
+	let startJobName = 'Ligar '+deviceName; 
+	agenda.define(startJobName, function(job, done) {
+	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
+	  console.log('Ligando '+deviceName+'...');
+	  done();
+	});
+	agenda.on('ready', function() {
+	  agenda.schedule(startTime, startJobName);
+	  agenda.start();
+	});
+
+	agenda.processEvery('10 seconds');
+	res.send(200);
+});
+
+// TURN OFF
+router.post('/schedule/off_once',function(req,res){
+	console.log(req.body);
+	let deviceName = req.body.deviceName;
+	let startTime = req.body.startTime;
+	var mongoConnectionString = config.database;
+	var agenda = new Agenda({db: {address: mongoConnectionString}});
+	
+	let startJobName = 'Desligar '+deviceName; 
+	agenda.define(startJobName, function(job, done) {
+	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
+	  console.log('Desligando '+deviceName+'...');
+	  done();
+	});
+	agenda.on('ready', function() {
+	  agenda.schedule(startTime, startJobName);
+	  agenda.start();
+	});
+
+	agenda.processEvery('10 seconds');
+	res.send(200);
+});
+
+// TURN ON AND OFF ONCE
 router.post('/schedule/on_off_once',function(req,res){
 	console.log(req.body);
 	let deviceName = req.body.deviceName;
@@ -76,6 +156,7 @@ router.post('/schedule/on_off_once',function(req,res){
 	res.send(200);
 });
 
+// TURN ON AND OFF AND REPEAT
 router.post('/schedule/on_off_repeat',function(req,res){
 	console.log(req.body);
 	let deviceName = req.body.deviceName;
@@ -350,19 +431,19 @@ router.post('/telemetry', function(req, res){
 					// callback(err);
 				} else {
 					if (device) {
-						console.log(device._id);
+						// console.log(device._id);
 					} else {
 						invalid_IDs.push(ID);
 						invalid_IDs_string += ID+'\n';
-						console.log('wrong or inexistant id');
+						// console.log('wrong or inexistant id');
 						console.log(invalid_IDs);
 					}
 				}
-				console.log('index = '+index);
+				// console.log('index = '+index);
 				if (index == IDs.length-1) {
-					console.log('finish loop');
+					// console.log('finish loop');
 					if (!invalid_IDs.length > 0) {
-						console.log('GOOD TO GO');
+						// console.log('GOOD TO GO');
 						// TELEMETRY READING FUNCTIONS GO HERE
 						// =========================================================
 						// === UPDATE DB USING JSON ===
@@ -436,7 +517,7 @@ router.post('/telemetry', function(req, res){
 						var total_power = 0;
 						for (var i=0;i<telemetry_list.length;i++) {
 							total_power = total_power + telemetry_list[i].power;
-							console.log(total_power)
+							// console.log(total_power)
 						}
 						let totalpower = new TotalPower();
 						totalpower.power = total_power;

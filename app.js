@@ -161,6 +161,7 @@ let api = require('./routes/api');
 let schedule = require('./routes/agenda');
 let telemetry = require('./routes/telemetry');
 let alerts = require('./routes/alerts');
+let automation = require('./routes/automation');
 
 app.use('/', index);
 app.use('/articles', articles);
@@ -169,6 +170,7 @@ app.use('/users', users);
 app.use('/api', api);
 app.use('/telemetry', telemetry);
 app.use('/agendash', Agendash(agenda));
+app.use('/automation', automation);
 app.use('/schedule', schedule);
 app.use('/alerts', alerts);
 

@@ -11,43 +11,44 @@ function testSchedule() {
 // GLOBAL VARIABLES
 
 function updateTelemetryData() {
-  $.get("/api/totalpower", function(data, status){
-    // alert("Data: " + data + "\nStatus: " + status);
-    document.getElementById("value_totalpower").innerHTML = data.power.toFixed(2)+" W";
-  }); 
-  $.get("/api/totalconsumption", function(data, status){
-      // alert("Data: " + data + "\nStatus: " + status);
-      document.getElementById("value_totalconsumption").innerHTML = (data/1000.0).toFixed(2)+' kWh';
-      document.getElementById("value_currentbill").innerHTML = 'R$ '+(data*0.4/1000.0).toFixed(2);
-  }); 
-  
+  const devId = $('#select-devices').val();
+  var get_url = '';
+  if (devId != "Todos os dispositivos") {
+    get_url = "/api/telemetry?deviceId="+devId;
+    // alert(get_url);
+  } else {
+    get_url = "/api/telemetry";
+  }
+  var telemetry_samples = 0;
+  $.get(get_url, function(data, status){
+    var table = $("#telemetry-data tbody");
+    $.each(data, function(idx, elem){
+        telemetry_samples++;
+        table.prepend("<tr><td>"+elem.timestamp+"</td><td>"+elem.power+"</td><td>"+elem.voltage+"</td><td>"+elem.current+"</td><td>"+elem.deviceId+"</td></tr>");
+    });
+    $("#telemetry-data").find("tr:gt("+telemetry_samples+")").remove();
+  });
 }
 
-// $(document).ready(function(){
-//   var path = window.location.pathname;
-//   if (path == '/') {
-//     // LOAD ONCE WHEN PAGE OPENS
-//     updateData();
-//     $.get("/api/totalpowerforperiod", function(data, status){
-//         // alert("power: " + data[0].power + "\nTimestamp: " + data[0].timestamp);
-//         let xpoints = [];
-//         let labels =[];
-//         var datapoints = [];
-//         data.forEach(function(item){
-//           xpoints.unshift(item.power);
-//           let timestamp = new Date(item.timestamp);
-//           labels.unshift(timestamp.getHours()+":"+timestamp.getMinutes()+":"+timestamp.getSeconds());
-//           datapoints.push({x: new Date(item.timestamp), y: item.power});
-//         });
-//         weeklyConsumptionChart("chart1",labels,xpoints);
-//     }); 
-//     // UPDATE ON DATA CHANGE
-//     setInterval(function(){
-//       // this will run after every 5 seconds
-//       updateData();
-//     }, 5000);
-//   }  
-// });
+$(document).ready(function(){
+  var path = window.location.pathname;
+  if (path == '/telemetry') {
+    // LOAD ONCE WHEN PAGE OPENS
+    // Get devices names and show in dropdown menu
+    $.get("/api/devices", function(devices, status){
+      var options = $("#select-devices");
+      devices.forEach(function(device,index){
+        options.append($("<option />").val(device._id).text(device.name));
+      });
+    }); 
+    updateTelemetryData();
+    // UPDATE ON DATA CHANGE
+    setInterval(function(){
+      // this will run after every 5 seconds
+      updateTelemetryData();
+    }, 2000);
+  }
+});
 
 // ===========================================================================================
 // DEVICES PAGE FUNCTIONS
@@ -92,7 +93,6 @@ $(document).ready(function(){
 // ===========================================================================================
 // DASHBOARD PAGE DATA UPDATE
 // GLOBAL VARIABLES
-
 
 function updateDashboardData() {
   $.get("/api/totalpower", function(data, status){
