@@ -1,0 +1,33 @@
+<%# views/alerts.ejs %>
+<% extend('layout') %>
+
+<h1>Alertas por sms</h1>
+<p>Configure aqui seu telefone para receber avisos sobre anormalidades de 
+    tensão e corrente e estatísticas do consumo mensal de energia
+</p>
+<h3>Usuários inscritos:</h3>
+<ul>
+    <li>ninguém inscrito</li>
+</ul>
+<h3>Adicionar telefone</h3>
+<form>
+    <div class="form-group">
+        <label for="exampleInputEmail1">Número de telefone</label>
+        <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="número...">
+        <small id="emailHelp" class="form-text text-muted">
+            Apenas números, precedidos do código internacional e de área<br>
+            como no exemplo: +5596xxxxxyyyy
+        </small>
+    </div>
+    <!-- <div class="form-group">
+        <label for="exampleInputPassword1">Password</label>
+        <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+    </div>
+    <div class="form-check">
+        <label class="form-check-label">
+        <input type="checkbox" class="form-check-input">
+        Check me out
+        </label>
+    </div> -->
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>

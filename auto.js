@@ -27,11 +27,15 @@ setInterval(function(){
 	    datapoints.push(data);
 	}
 
+	var dID1 = "59befd62bc7c38a6a14e8660";
+	var dID2 = "59c2a2c4a2243cc629fd50c6";
+	var dID3 = "59c2a2d5a2243cc629fd50c7";
+	var dID4 = "59c2a310a2243cc629fd50c8";
     var requestData = 
-    	[{"device_id":"1","power":+datapoints[0].power.toFixed(2),"voltage":datapoints[0].voltage.toFixed(2),"current":datapoints[0].current.toFixed(2)},
-    	{"device_id":"2","power":datapoints[1].power.toFixed(2),"voltage":datapoints[1].voltage.toFixed(2),"current":datapoints[1].current.toFixed(2)},
-    	{"device_id":"3","power":datapoints[2].power.toFixed(2),"voltage":datapoints[2].voltage.toFixed(2),"current":datapoints[2].current.toFixed(2)},
-    	{"device_id":"4","power":datapoints[3].power.toFixed(2),"voltage":datapoints[3].voltage.toFixed(2),"current":datapoints[3].current.toFixed(2)}];
+    	[{"device_id":dID1,"power":+datapoints[0].power.toFixed(2),"voltage":datapoints[0].voltage.toFixed(2),"current":datapoints[0].current.toFixed(2)},
+    	{"device_id":dID2,"power":datapoints[1].power.toFixed(2),"voltage":datapoints[1].voltage.toFixed(2),"current":datapoints[1].current.toFixed(2)},
+    	{"device_id":dID3,"power":datapoints[2].power.toFixed(2),"voltage":datapoints[2].voltage.toFixed(2),"current":datapoints[2].current.toFixed(2)},
+    	{"device_id":dID4,"power":datapoints[3].power.toFixed(2),"voltage":datapoints[3].voltage.toFixed(2),"current":datapoints[3].current.toFixed(2)}];
 
     // var requestData = '[{"device_id":"1","power":"86.4","voltage":"94","current":"0.72"},{"device_id":"2","power":"50","voltage":"120","current":"0.6"},{"device_id":"3","power":"500","voltage":"120","current":"2.3"},{"device_id":"4","power":"20","voltage":"120","current":"0.12"}]';
 

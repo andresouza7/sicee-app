@@ -1,44 +1,44 @@
 <%# views/index.ejs %>
 <% extend('layout') %>
 
+
+<h1>Dashboard</h1>
+
 <div class="container">
-  <h1>Dashboard</h1>
-  <hr>
-  <h3 id="dashboardStatisticsTitle">Estatísticas</h3>
   <div class="row">
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-primary mb-3" style="max-width: 20rem;">
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
         <div class="card-header" id="title_totalpower">Potência instantânea</div>
         <div class="card-body">
           <h4 class="card-title" id="value_totalpower"></h4>
-          <!-- <p class="card-text">++</p> -->
+          <p class="card-text">++</p>
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-success mb-3" style="max-width: 20rem;">
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
         <div class="card-header" id="title_totalconsumption">Consumo acumulado</div>
         <div class="card-body">
           <h4 class="card-title" id="value_totalconsumption"></h4>
-          <!-- <p class="card-text">--</p> -->
+          <p class="card-text">--</p>
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-secondary mb-3" style="max-width: 20rem;">
-        <div class="card-header" id="title_currentbill">Conta atual</div>
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
+        <div class="card-header" id="title_currentbill">Conta até agora</div>
         <div class="card-body">
           <h4 class="card-title" id="value_currentbill">R$ 21,43</h4>
-          <!-- <p class="card-text">++</p> -->
+          <p class="card-text">++</p>
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-info mb-3" style="max-width: 20rem;">
+    <div class="col">
+      <div class="card text-white bg-success mb-3" style="max-width: 20rem;">
         <div class="card-header" id="title_estimatedbill">Projeção para o mês</div>
         <div class="card-body">
           <h4 class="card-title" id="value_estimatedbill">R$ 321,3</h4>
-          <!-- <p class="card-text">+++++</p> -->
+          <p class="card-text">+++++</p>
         </div>
       </div>
     </div>
@@ -47,15 +47,14 @@
 </div>
 
 <div class="container">
-  <h3>Gráficos</h3>
   <div class="row">
+    <div class="charjs-size-monitor">
       <div class="col">
-        <div class="charjs-size-monitor">
-          <canvas id="chart1" width="600px" height="300px"></canvas>
+        <canvas id="chart1" width="600px" height="300px"></canvas>
       </div>
     </div>
-    <div class="col"></div>
-      <div class="charjs-size-monitor">
+    <div class="charjs-size-monitor">
+      <div class="col">
         <canvas id="chart2" width="400" height="250"></canvas>
       </div>
     </div>
@@ -63,9 +62,8 @@
 </div>
 <br>
 <div class="container">
-  <h3>Notificações</h3>
   <div class="row">
-    <div class="col-md-6">
+    <div class="col">
       <div class="alert alert-danger" role="alert">
         A tensão no medidor 1 está em 102 V, verifique o estado da rede elétrica - 17, set 17
       </div>
@@ -76,7 +74,7 @@
         3 picos anormais de corrente registrados pelo medidor 2. <a href="#" class="alert-link">Ver os detalhes</a>  - 15, set 17
       </div>  
     </div> 
-    <div class="col-md-6">
+    <div class="col">
       <div class="alert alert-primary" role="alert">
         A média de consumo está de acordo com a meta programada, continue assim para não ultrapassar os R$ 400,0 este mês.
       </div>

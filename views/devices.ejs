@@ -1,25 +1,40 @@
-<%# views/telemetry.ejs %>
+<%# views/devices.ejs %>
 <% extend('layout') %>
 
 <h1 onload="">Dispositivos</h1>
+
+<% if (user) { %>
+	<a class="btn btn-primary" href="/devices/add">Adicionar</a>
+<% } %>
+<br>
+<br>
 <p>Configurar o ID de cada dispositivo no Gateway para conectar com o servidor</p>
-<ul class="list-group">
-	<% devices.forEach(function(device) { %>
-	<li class="list-group-item">
-		<div class="container">
-			<div><label>Nome:</label><b><%= ' '+device.name %></b></div>
-			<div><label>ID: </label><%= ' '+device._id %></div>
-			<div><label>Descrição: </label><%= ' '+device.description %></div>
-			<div><label>Adicionado em: </label><%= ' '+device.created_at %></div>
-		
-	<% if (user) { %>
-		<a class="btn btn-default" href="/devices/edit/<%=device._id %>">Edit</a>
-		<a class="btn btn-danger delete-device" data-id="<%=device._id%>" href='#'>Delete</a>
-	<% } %>
+<div class="container-fluid">
+<div class="row">
+<% devices.forEach(function(device) { %>
+<div class="col-xg-4">
+	<div class="card" style="width: 20rem; font-size:14px">		
+		<div class="card-body">
+			<div class="container">
+				<div><label>Nome:</label><b><%= ' '+device.name %></b></div>
+				<div><label>ID: </label><%= ' '+device._id %></div>
+				<div><label>Descrição: </label><%= ' '+device.description %></div>
+				<div><label>Adicionado em: </label><%= ' '+device.created_at %></div>
+			
+		<% if (user) { %>
+		<hr>
+		<div class="btn-group" role="group">
+			<a class="btn btn-secondary" href="/devices/edit/<%=device._id %>">Editar</a>
+			<a class="btn btn-danger delete-device" data-id="<%=device._id%>" href='#'>Deletar</a>
 		</div>
-	</li>
+		<% } %>
+			</div>
+		</div>
+	</div>
+</div>
 	<% }); %>
-</ul>
+</div>
+</div>
 <script src="/js/dashboardFeed.js"> </script>
 <script>testfunc();
 </script>

@@ -7,6 +7,49 @@ function testSchedule() {
 }
 
 // ===========================================================================================
+// TELEMETRY PAGE DATA UPDATE
+// GLOBAL VARIABLES
+
+function updateTelemetryData() {
+  $.get("/api/totalpower", function(data, status){
+    // alert("Data: " + data + "\nStatus: " + status);
+    document.getElementById("value_totalpower").innerHTML = data.power.toFixed(2)+" W";
+  }); 
+  $.get("/api/totalconsumption", function(data, status){
+      // alert("Data: " + data + "\nStatus: " + status);
+      document.getElementById("value_totalconsumption").innerHTML = (data/1000.0).toFixed(2)+' kWh';
+      document.getElementById("value_currentbill").innerHTML = 'R$ '+(data*0.4/1000.0).toFixed(2);
+  }); 
+  
+}
+
+// $(document).ready(function(){
+//   var path = window.location.pathname;
+//   if (path == '/') {
+//     // LOAD ONCE WHEN PAGE OPENS
+//     updateData();
+//     $.get("/api/totalpowerforperiod", function(data, status){
+//         // alert("power: " + data[0].power + "\nTimestamp: " + data[0].timestamp);
+//         let xpoints = [];
+//         let labels =[];
+//         var datapoints = [];
+//         data.forEach(function(item){
+//           xpoints.unshift(item.power);
+//           let timestamp = new Date(item.timestamp);
+//           labels.unshift(timestamp.getHours()+":"+timestamp.getMinutes()+":"+timestamp.getSeconds());
+//           datapoints.push({x: new Date(item.timestamp), y: item.power});
+//         });
+//         weeklyConsumptionChart("chart1",labels,xpoints);
+//     }); 
+//     // UPDATE ON DATA CHANGE
+//     setInterval(function(){
+//       // this will run after every 5 seconds
+//       updateData();
+//     }, 5000);
+//   }  
+// });
+
+// ===========================================================================================
 // DEVICES PAGE FUNCTIONS
 // GLOBAL VARIABLES
 
@@ -51,7 +94,7 @@ $(document).ready(function(){
 // GLOBAL VARIABLES
 
 
-function updateData() {
+function updateDashboardData() {
   $.get("/api/totalpower", function(data, status){
     // alert("Data: " + data + "\nStatus: " + status);
     document.getElementById("value_totalpower").innerHTML = data.power.toFixed(2)+" W";
@@ -64,11 +107,11 @@ function updateData() {
   
 }
 
-  $(document).ready(function(){
-    var path = window.location.pathname;
-    if (path == '/') {
+$(document).ready(function(){
+  var path = window.location.pathname;
+  if (path == '/') {
     // LOAD ONCE WHEN PAGE OPENS
-    updateData();
+    updateDashboardData();
     $.get("/api/totalpowerforperiod", function(data, status){
         // alert("power: " + data[0].power + "\nTimestamp: " + data[0].timestamp);
         let xpoints = [];
@@ -85,9 +128,9 @@ function updateData() {
     // UPDATE ON DATA CHANGE
     setInterval(function(){
       // this will run after every 5 seconds
-      updateData();
-    }, 3000);
-    }  
+      updateDashboardData();
+    }, 2000);
+  }  
 });
 
 function weeklyConsumptionChart(container,labels,data) {

@@ -9,3 +9,8 @@
   background-color: #dff0d8;
   border-color: #d6e9c6;
 }
+
+body {
+  font-family: 'Varela Round', sans-serif;
+  /* font-family: 'Play', sans-serif; */
+}
