@@ -2,17 +2,21 @@ let mongoose = require('mongoose');
 
 // Article Schema
 let deviceSchema = mongoose.Schema({
+  deviceId: {
+    type: String,
+    required: true
+  },
   name:{
     type: String,
     required: true
   },
   description:{
     type: String,
-    required: true
+    default: "..."
   },
   created_at:{
     type: Date,
-    required: true
+    default: Date.now()
   }
 });
 

@@ -403,7 +403,11 @@ router.get('/notifications', function(req, res) {
 	});
 });
 
-router.post('/telemetry', function(req, res){
+// ======================================================
+// OLD COLD - USING OBJECTID AS DEVICE ID
+// ======================================================
+// SAVE NEW TELEMETRY TO DATABASE
+router.post('/null', function(req, res){
 	let datastring = JSON.stringify(req.body);
 	let data = JSON.parse(datastring);
 	var IDs = [];
@@ -553,6 +557,153 @@ router.post('/telemetry', function(req, res){
 				}
 			});
 		});	
+	} else {
+		res.send('Erro no formato dos dados, certifique-se de estar no formato JSON e que contém os campos:\n{device_id:xx,power:xx,voltage:xx,current:xx}');
+	}
+});
+
+// SAVE TELEMETRY TO DATABASE
+router.post('/telemetry', function(req, res){
+	let datastring = JSON.stringify(req.body);
+	let data = JSON.parse(datastring);
+	var IDs = [];
+	let All_Fields_Provided = true;
+	data.forEach(function(item){
+		IDs.push(item.device_id);
+		if (typeof item.device_id == 'undefined' || typeof item.power == 'undefined' || typeof item.voltage == 'undefined' || typeof item.current == 'undefined') {
+			All_Fields_Provided = false;
+		}
+	})
+
+	// Adds device to the database if it isnt yet
+	IDs.forEach(function(ID, index){
+		Device.findOne({deviceId: ID}).exec(function(err, device) {
+			if (err) {
+				// res.send(404);
+				// callback(err);
+			} else {
+				if (device) {
+					// console.log(device._id);
+				} else {
+					let newDevice = new Device();
+					newDevice.deviceId = ID;
+					newDevice.name = "Medidor"+ID;
+					newDevice.save(function(err){
+						if (err) {
+							console.log(err);
+							return;
+						}
+					});
+				}
+			}
+		});
+	});
+
+	if (All_Fields_Provided) {
+		// console.log('GOOD TO GO');
+		// TELEMETRY READING FUNCTIONS GO HERE
+		// =========================================================
+		// === UPDATE DB USING JSON ===
+		let json_telemetry_data = req.body;
+		var telemetry_list = [];
+		var consumption_list = [];
+		
+		json_telemetry_data.forEach(function(item){
+			let samplingPeriod = 3.0/3600.0; // 5 seconds converted to hour
+			let telemetry = new Telemetry();
+			let consumption = new Consumption();
+
+			telemetry.deviceId = item.device_id;
+			telemetry.power = item.power;
+			telemetry.voltage = item.voltage;
+			telemetry.current = item.current;
+			telemetry.timestamp = Date.now();
+
+			consumption.deviceId = item.device_id;
+			consumption.consumption = item.power*samplingPeriod;
+			consumption.timestamp = Date.now();
+			telemetry_list.push(telemetry);
+			consumption_list.push(consumption);
+
+			// DETECT IF VOLTAGE IS 127V OR 220V
+			const voltage_max_threshold_127 = 135.0;
+			const voltage_min_threshold_127 = 110.0;
+			const voltage_max_threshold_220 = 230.0;
+			const voltage_min_threshold_220 = 210.0;
+			if (item.voltage < 160) { // voltage is supposed to be 127v
+				if (item.voltage < voltage_min_threshold_127 || item.voltage > voltage_max_threshold_127) {
+					let notification = new Notification();
+					notification.nature = 'voltage';
+					notification.description = 'A tensão está em '+item.voltage+' V. Pode haver um problema neste ponto da rede elétrica';
+					notification.save(function(err){
+						if (err) {
+							console.log(err);
+							return;
+						}
+					});
+				}
+			} else { // voltage is supposed to be 220v
+				if (item.voltage < voltage_min_threshold_220 || item.voltage > voltage_max_threshold_220) {
+					let notification = new Notification();
+					notification.nature = 'voltage';
+					notification.description = 'A tensão está em '+item.voltage+' V. Pode haver um problema neste ponto da rede elétrica';
+					notification.save(function(err){
+						if (err) {
+							console.log(err);
+							return;
+						}
+					});
+				}
+			}
+
+			// DETECT IF CURRENT IS TOO HIGH
+			const current_max_threshold = 15.0;
+			if (item.current > current_max_threshold) {
+				let notification = new Notification();
+				notification.nature = 'current';
+				notification.description = 'Valor alto de corrente registrado: '+item.current+' A';
+				notification.save(function(err){
+					if (err) {
+						console.log(err);
+						return;
+					}
+				});
+			}
+		});
+
+		var total_power = 0;
+		for (var i=0;i<telemetry_list.length;i++) {
+			total_power = total_power + telemetry_list[i].power;
+			// console.log(total_power)
+		}
+		let totalpower = new TotalPower();
+		totalpower.power = total_power;
+		totalpower.timestamp = Date.now();
+		totalpower.save(function(err){
+				if(err){
+					console.log('Error saving to db: '+err);
+				}
+			});
+		
+		// SAVE DEVICES TELEMETRY READINGS TO DATABASE
+			Telemetry.insertMany(telemetry_list,function(err){
+				if(err){
+					console.log(err);
+				}
+			});
+
+			// SAVA DEVICES CONSUMPTION DATA TO DATABASE
+			Consumption.insertMany(consumption_list,function(err){
+				if(err){
+					console.log(err);
+				}
+			});
+
+			// LOOK FOR VOLTAGE OR CURRENT ANOMALY IN TELEMETRY DATA
+			// TELEMETRY READING FUNCTIONS END HERE
+			// =========================================================================
+		res.send('Dados registrados');
+					
 	} else {
 		res.send('Erro no formato dos dados, certifique-se de estar no formato JSON e que contém os campos:\n{device_id:xx,power:xx,voltage:xx,current:xx}');
 	}

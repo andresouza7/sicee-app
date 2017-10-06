@@ -24,7 +24,7 @@ function updateTelemetryData() {
     var table = $("#telemetry-data tbody");
     $.each(data, function(idx, elem){
         telemetry_samples++;
-        table.prepend("<tr><td>"+elem.timestamp+"</td><td>"+elem.power+"</td><td>"+elem.voltage+"</td><td>"+elem.current+"</td><td>"+elem.deviceId+"</td></tr>");
+        table.prepend("<tr><td>"+elem.deviceId+"</td><td>"+elem.power+"</td><td>"+elem.voltage+"</td><td>"+elem.current+"</td><td>"+elem.timestamp+"</td></tr>");
     });
     $("#telemetry-data").find("tr:gt("+telemetry_samples+")").remove();
   });
@@ -38,7 +38,7 @@ $(document).ready(function(){
     $.get("/api/devices", function(devices, status){
       var options = $("#select-devices");
       devices.forEach(function(device,index){
-        options.append($("<option />").val(device._id).text(device.name));
+        options.append($("<option />").val(device.deviceId).text(device.name));
       });
     }); 
     updateTelemetryData();
