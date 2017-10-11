@@ -162,6 +162,7 @@ let schedule = require('./routes/agenda');
 let telemetry = require('./routes/telemetry');
 let alerts = require('./routes/alerts');
 let automation = require('./routes/automation');
+let control = require('./routes/control');
 
 app.use('/', index);
 app.use('/articles', articles);
@@ -173,6 +174,7 @@ app.use('/agendash', Agendash(agenda));
 app.use('/automation', automation);
 app.use('/schedule', schedule);
 app.use('/alerts', alerts);
+app.use('/control',control);
 
 // Start Server
 function normalizePort(val) {

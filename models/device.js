@@ -17,6 +17,14 @@ let deviceSchema = mongoose.Schema({
   created_at:{
     type: Date,
     default: Date.now()
+  },
+  current_state: {
+    type: String,
+    default: "off"
+  },
+  change_state: {
+    type: String,
+    default: "off"
   }
 });
 

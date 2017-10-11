@@ -51,6 +51,65 @@ $(document).ready(function(){
 });
 
 // ===========================================================================================
+// CONTROL PAGE SETUP
+// GLOBAL VARIABLES
+
+function updateStateOn(id) {
+  var url = "/api/devices/state/update/on?id=0"+id;
+  $.get(url, function(data, status){
+   
+  });
+}
+
+function updateStateOff(id) {
+  var url = "/api/devices/state/update/off?id=0"+id;
+  $.get(url, function(data, status){
+   
+  });
+}
+
+$(document).ready(function(){
+  var path = window.location.pathname;
+  if (path == '/control') {
+    // LOAD ONCE WHEN PAGE OPENS
+    // Get devices names and show in dropdown menu
+    $.get("/api/devices", function(devices, status){
+      devices.forEach(function(device,index){
+        var box = $(document.createElement('div'));
+        box.append($('<label>',{text:device.deviceId}));
+        box
+        .append(
+          $(document.createElement('input')).attr({
+            id:  device.deviceId
+            ,class: 'device'
+            ,name: 'device'
+            ,value: 'on'
+            ,type:  'submit'
+            ,onclick: 'updateStateOn('+device.deviceId+')'
+          })
+        );
+        box
+        .append(
+          $(document.createElement('input')).attr({
+            id:  device.deviceId
+            ,class: 'device'
+            ,name: 'device'
+            ,value: 'off'
+            ,type:  'submit'
+            ,onclick: 'updateStateOff('+device.deviceId+')'
+          })
+        );
+        box.append($('<label>',{text:device.current_state}));
+        $('#select-devices').append(box);
+      });
+    }); 
+    // $('#select-devices').on('click','.device',function() {
+    //   alert($($("#01").text()));
+    // });
+  }
+});
+
+// ===========================================================================================
 // DEVICES PAGE FUNCTIONS
 // GLOBAL VARIABLES
 
