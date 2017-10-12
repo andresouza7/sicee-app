@@ -3,6 +3,8 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const config = require('../config/database');
 const Agenda = require('agenda');
+const request = require('request');
+const http = require('http');
 
 // Telemetry Model
 let Telemetry = require('../models/telemetry');
@@ -14,6 +16,15 @@ let TotalPower = require('../models/total_power');
 let Notification = require('../models/notification');
 // Device Model
 let Device = require('../models/device');
+
+function updateState(devId,state) {
+	Device.update({deviceId: devId}, {change_state:state}, function(err){
+		if(err){
+		  console.log(err);
+		  return;
+		}
+	});
+}
 
 // SET DEVICE STATE ON
 router.get('/devices/state/update/on', function(req, res){
@@ -41,19 +52,25 @@ router.get('/devices/state/update/off', function(req, res){
 
 // GET DEVICES STATE
 router.get('/devices/state', function(req, res){
-	Device.find({$where : "this.change_state != this.current_state"},{_id:0,deviceId:1,change_state:1}).
-	  exec(function(err, devices){
-		if(err){
-		  console.log(err);
-		} else {
-		  console.log(devices);
-		  res.json(devices);
-		}
-	  });
-
-	// res.json(JSON.parse('[{"id":"01","state":"on"},{"id":"02","state":"on"},{"id":"03","state":"on"},{"id":"04","state":"on"},{"id":"05","state":"on"}]'));
-	// res.send(400);
-  });
+	Device.aggregate([{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]).
+	exec(function(err, devices){
+	  if(err){
+			res.sendStatus(500);
+			console.log(err);
+	  } else {
+		console.log(devices);
+		res.json(devices);
+		devices.forEach(function(device){
+			Device.update({deviceId: device.deviceId}, {current_state:device.change_state}, function(err){
+				if(err){
+				  console.log(err);
+				  return;
+				}
+			});
+		});
+	  }
+	});
+});
 
 // GET DEVICES
 router.get('/devices', function(req, res){
@@ -100,7 +117,7 @@ router.get('/telemetry',function(req,res){
 		let deviceId = req.query.deviceId;
 		// let ObjectId = require('mongodb').ObjectId;
 		if(typeof deviceId != 'undefined') { // DISPLAYING DATA FOR SPECIFIC DEVICE
-			Telemetry.find({deviceId:deviceId}).sort({timestamp:-1}).limit(8).exec(function(err, telemetry_list) {
+			Telemetry.find({deviceId:deviceId}).sort({timestamp:-1}).limit(20).exec(function(err, telemetry_list) {
 				res.json(telemetry_list.reverse());
 				// console.log(telemetry_list);
 			});
@@ -118,15 +135,16 @@ router.get('/telemetry',function(req,res){
 // TURN ON
 router.post('/schedule/on_once',function(req,res){
 	console.log(req.body);
-	let deviceName = req.body.deviceName;
+	let deviceId = req.body.deviceId;
 	let startTime = req.body.startTime;
 	var mongoConnectionString = config.database;
 	var agenda = new Agenda({db: {address: mongoConnectionString}});
 	
-	let startJobName = 'Ligar '+deviceName; 
+	let startJobName = 'Ligar medidor '+deviceId; 
 	agenda.define(startJobName, function(job, done) {
 	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-	  console.log('Ligando '+deviceName+'...');
+		console.log('Ligando medidor '+deviceId+'...');
+		updateState(deviceId,'on');
 	  done();
 	});
 	agenda.on('ready', function() {
@@ -141,15 +159,15 @@ router.post('/schedule/on_once',function(req,res){
 // TURN OFF
 router.post('/schedule/off_once',function(req,res){
 	console.log(req.body);
-	let deviceName = req.body.deviceName;
+	let deviceId = req.body.deviceId;
 	let startTime = req.body.startTime;
 	var mongoConnectionString = config.database;
 	var agenda = new Agenda({db: {address: mongoConnectionString}});
 	
-	let startJobName = 'Desligar '+deviceName; 
+	let startJobName = 'Desligar medidor '+deviceId; 
 	agenda.define(startJobName, function(job, done) {
-	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-	  console.log('Desligando '+deviceName+'...');
+		console.log('Desligando medidor '+deviceId+'...');
+		updateState(deviceId,'off');
 	  done();
 	});
 	agenda.on('ready', function() {
@@ -164,16 +182,16 @@ router.post('/schedule/off_once',function(req,res){
 // TURN ON AND OFF ONCE
 router.post('/schedule/on_off_once',function(req,res){
 	console.log(req.body);
-	let deviceName = req.body.deviceName;
+	let deviceId = req.body.deviceId;
 	let startTime = req.body.startTime;
 	let endTime = req.body.endTime;
 	var mongoConnectionString = config.database;
 	var agenda = new Agenda({db: {address: mongoConnectionString}});
 	
-	let startJobName = 'Ligar '+deviceName; 
+	let startJobName = 'Ligar medidor '+deviceId; 
 	agenda.define(startJobName, function(job, done) {
-	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-	  console.log('Ligando '+deviceName+'...');
+		console.log('Ligando medidor '+deviceId+'...');
+		updateState(deviceId,'on');
 	  done();
 	});
 	agenda.on('ready', function() {
@@ -181,10 +199,10 @@ router.post('/schedule/on_off_once',function(req,res){
 	  agenda.start();
 	});
 
-	let endJobName = 'Desligar '+deviceName; 
+	let endJobName = 'Desligar medidor '+deviceId; 
 	agenda.define(endJobName, function(job, done) {
-	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-	  console.log('Desligando '+deviceName+'...');
+		console.log('Desligando medidor '+deviceId+'...');
+		updateState(deviceId,'off');
 	  done();
 	});
 	agenda.on('ready', function() {
@@ -267,7 +285,7 @@ router.post('/schedule/repeat',function(req,res){
 	agenda.define('new voltage warning', function(job, done) {
 	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
 	  console.log('executing task...');
-	  var request = require('request');
+	  
 		request.post({
 		     url: "http://localhost:8080",
 		     headers: {
@@ -804,11 +822,32 @@ router.post('/telemetry/test', function(req, res) {
 				console.log(err);
 			}
 		});
+		// UPDATE CURRENT DEVICE STATE
+		if (power>0) {
+			Device.update({devId: item.device_id}, {current_state:"on"}, function(err){
+				if(err){
+					console.log(err);
+					return;
+				}
+			});
+		} else if (power==0) {
+			Device.update({devId: item.device_id}, {current_state:"off"}, function(err){
+				if(err){
+					console.log(err);
+					return;
+				}
+			});
+		}
 	});
-	Device.find({$where : "this.change_state != this.current_state"},{_id:0,deviceId:1,change_state:1}).
+	// with find({})
+	let originalQuery = 'this.change_state != this.current_state'; 
+	// with aggregate({})
+	let alternativeQuery = '[{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]';
+	Device.aggregate([{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]).
 	exec(function(err, devices){
 	  if(err){
-		console.log(err);
+			res.sendStatus(500);
+			console.log(err);
 	  } else {
 		console.log(devices);
 		res.json(devices);
@@ -822,6 +861,7 @@ router.post('/telemetry/test', function(req, res) {
 		});
 	  }
 	});
+	// res.json();
 });
 
 module.exports = router;
