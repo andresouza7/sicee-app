@@ -52,6 +52,10 @@ router.get('/devices/state/update/off', function(req, res){
 
 // GET DEVICES STATE
 router.get('/devices/state', function(req, res){
+	// with find({})
+	let originalQuery = 'this.change_state != this.current_state'; 
+	// with aggregate({})
+	let alternativeQuery = '[{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]';
 	Device.aggregate([{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]).
 	exec(function(err, devices){
 	  if(err){
@@ -462,7 +466,7 @@ router.get('/notifications', function(req, res) {
 });
 
 // ======================================================
-// OLD COLD - USING OBJECTID AS DEVICE ID
+// OLD CODE - USING OBJECTID AS DEVICE ID
 // ======================================================
 // SAVE NEW TELEMETRY TO DATABASE
 router.post('/null', function(req, res){
@@ -621,7 +625,7 @@ router.post('/null', function(req, res){
 });
 
 // SAVE TELEMETRY TO DATABASE
-router.post('/telemetry', function(req, res){
+router.post('/null2', function(req, res){
 	let datastring = JSON.stringify(req.body);
 	let data = JSON.parse(datastring);
 	var IDs = [];
@@ -800,37 +804,42 @@ router.post('/telemetry', function(req, res){
 	}
 });
 
-router.post('/telemetry/test', function(req, res) {
-	var str = req.body;
+router.post('/telemetry', function(req, res) {
 	var telemetry_list = [];
+	var consumption_list = [];
 	req.body.forEach(function(item, index){
+		["011  0 0.0"]
 		let devId = item.substring(0, 2);
-		let power = parseFloat(item.substring(2,9));
-		let vrms = parseFloat(item.substring(9,15));
-		let irms = parseFloat(item.substring(15,20));
+		let relayState = parseInt(item.substring(2, 3));
+		let vrms = parseFloat(item.substring(3,6));
+		let irms = parseFloat(item.substring(6,9));
+		let power = vrms*irms;
+		
+		let samplingPeriod = 10.0/3600.0; // 10 seconds converted to hour
 		let telemetry = new Telemetry();
+		let consumption = new Consumption();
 
 		telemetry.deviceId = devId;
 		telemetry.power = power;
 		telemetry.voltage = vrms;
 		telemetry.current = irms;
 		telemetry.timestamp = Date.now();
+		
+		consumption.deviceId = devId;
+		consumption.consumption = power*samplingPeriod;
+		consumption.timestamp = Date.now();
 		telemetry_list.push(telemetry);
+		consumption_list.push(consumption);
 
-		Telemetry.insertMany(telemetry_list,function(err){
-			if(err){
-				console.log(err);
-			}
-		});
 		// UPDATE CURRENT DEVICE STATE
-		if (power>0) {
+		if (relayState==1) {
 			Device.update({devId: item.device_id}, {current_state:"on"}, function(err){
 				if(err){
 					console.log(err);
 					return;
 				}
 			});
-		} else if (power==0) {
+		} else if (relayState==0) {
 			Device.update({devId: item.device_id}, {current_state:"off"}, function(err){
 				if(err){
 					console.log(err);
@@ -838,30 +847,87 @@ router.post('/telemetry/test', function(req, res) {
 				}
 			});
 		}
-	});
-	// with find({})
-	let originalQuery = 'this.change_state != this.current_state'; 
-	// with aggregate({})
-	let alternativeQuery = '[{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]';
-	Device.aggregate([{$match:{$or:[{$and:[{current_state:"off"},{change_state:"on"}]},{$and:[{current_state:"on"},{change_state:"off"}]}]}},{$project:{_id:0,deviceId:1,change_state:1}}]).
-	exec(function(err, devices){
-	  if(err){
-			res.sendStatus(500);
-			console.log(err);
-	  } else {
-		console.log(devices);
-		res.json(devices);
-		devices.forEach(function(device){
-			Device.update({deviceId: device.deviceId}, {current_state:device.change_state}, function(err){
-				if(err){
-				  console.log(err);
-				  return;
+		// DETECT IF VOLTAGE IS 127V OR 220V
+		const voltage_max_threshold_127 = 135.0;
+		const voltage_min_threshold_127 = 110.0;
+		const voltage_max_threshold_220 = 230.0;
+		const voltage_min_threshold_220 = 210.0;
+		if (item.voltage < 160) { // voltage is supposed to be 127v
+			if (item.voltage < voltage_min_threshold_127 || item.voltage > voltage_max_threshold_127) {
+				let notification = new Notification();
+				notification.nature = 'voltage';
+				notification.description = 'A tensão está em '+item.voltage+' V. Pode haver um problema neste ponto da rede elétrica';
+				notification.save(function(err){
+					if (err) {
+						console.log(err);
+						return;
+					}
+				});
+			}
+		} else { // voltage is supposed to be 220v
+			if (item.voltage < voltage_min_threshold_220 || item.voltage > voltage_max_threshold_220) {
+				let notification = new Notification();
+				notification.nature = 'voltage';
+				notification.description = 'A tensão está em '+item.voltage+' V. Pode haver um problema neste ponto da rede elétrica';
+				notification.save(function(err){
+					if (err) {
+						console.log(err);
+						return;
+					}
+				});
+			}
+		}
+
+		// DETECT IF CURRENT IS TOO HIGH
+		const current_max_threshold = 15.0;
+		if (item.current > current_max_threshold) {
+			let notification = new Notification();
+			notification.nature = 'current';
+			notification.description = 'Valor alto de corrente registrado: '+item.current+' A';
+			notification.save(function(err){
+				if (err) {
+					console.log(err);
+					return;
 				}
 			});
-		});
-	  }
+		}
 	});
-	// res.json();
+	
+	var total_power = 0;
+	for (var i=0;i<telemetry_list.length;i++) {
+		total_power = total_power + telemetry_list[i].power;
+		// console.log(total_power)
+	}
+	let totalpower = new TotalPower();
+	totalpower.power = total_power;
+	totalpower.timestamp = Date.now();
+	totalpower.save(function(err){
+		if(err){
+			console.log('Error saving to db: '+err);
+		}
+	});
+
+	// SAVE DEVICES TELEMETRY READINGS TO DATABASE
+	Telemetry.insertMany(telemetry_list,function(err){
+		if(err){
+			console.log(err);
+		}
+	});
+
+	// SAVE DEVICES CONSUMPTION DATA TO DATABASE
+	Consumption.insertMany(consumption_list,function(err){
+		if(err){
+			console.log(err);
+		}
+	});
+
+	// LOOK FOR VOLTAGE OR CURRENT ANOMALY IN TELEMETRY DATA
+	// TELEMETRY READING FUNCTIONS END HERE
+	// =========================================================================
+
+	res.json([]);
+	// The response needs to be a JSON because the arduino uses the "[" and "]" symbols
+	// as reference to separate the body message from the headers and to close the connection
 });
 
 module.exports = router;

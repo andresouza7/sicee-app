@@ -90,16 +90,19 @@
             <li class="nav-item">
                 <a class="nav-link" href="/agendash">Automação</a>
             </li>
-            
-              <li class="nav-item"><a class="nav-link" href="/alerts">Avisos</a></li>
-            
+            <li class="nav-item">
+              <a class="nav-link" href="/control">Controle</a>
+            </li>
+            <!-- <li class="nav-item">
+              <a class="nav-link" href="/alerts">Avisos</a>
+            </li> -->
           </ul>
           <ul class="nav navbar-nav navbar-right">
             <% if (user) { %>
               <li class="nav-item"><a class="nav-link" href="/users/logout">Logout</a></li>
             <% } else { %>
-              <li class="nav-item"><a class="nav-link" href="/users/register">Registrar</a></li>
-              <li class="nav-item"><a class="nav-link" href="/users/login">Login</a></li>
+              <li class="nav-item"><a class="nav-link active" href="/users/register">Registrar</a></li>
+              <li class="nav-item"><a class="nav-link active" href="/users/login">Login</a></li>
             <% } %>
           </ul>
         </div>

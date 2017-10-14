@@ -55,14 +55,14 @@ $(document).ready(function(){
 // GLOBAL VARIABLES
 
 function updateStateOn(id) {
-  var url = "/api/devices/state/update/on?id=0"+id;
+  var url = "/api/devices/state/update/on?id="+id;
   $.get(url, function(data, status){
    
   });
 }
 
 function updateStateOff(id) {
-  var url = "/api/devices/state/update/off?id=0"+id;
+  var url = "/api/devices/state/update/off?id="+id;
   $.get(url, function(data, status){
    
   });
@@ -74,32 +74,56 @@ $(document).ready(function(){
     // LOAD ONCE WHEN PAGE OPENS
     // Get devices names and show in dropdown menu
     $.get("/api/devices", function(devices, status){
+      $(document).on('change', '[type=checkbox]', function() {
+        if($(this).is(":checked")) {
+          updateStateOn($(this).attr("value"));
+        } else {
+          updateStateOff($(this).attr("value"));
+        }
+        
+      }); 
+
       devices.forEach(function(device,index){
         var box = $(document.createElement('div'));
-        box.append($('<label>',{text:device.deviceId}));
-        box
-        .append(
-          $(document.createElement('input')).attr({
-            id:  device.deviceId
-            ,class: 'device'
-            ,name: 'device'
-            ,value: 'on'
-            ,type:  'submit'
-            ,onclick: 'updateStateOn('+device.deviceId+')'
-          })
-        );
-        box
-        .append(
-          $(document.createElement('input')).attr({
-            id:  device.deviceId
-            ,class: 'device'
-            ,name: 'device'
-            ,value: 'off'
-            ,type:  'submit'
-            ,onclick: 'updateStateOff('+device.deviceId+')'
-          })
-        );
-        box.append($('<label>',{text:device.current_state}));
+        var cardbox = $(document.createElement('div')).attr({
+          class: 'card',
+          style: "width: 12rem"
+        });
+        var cardbody = $(document.createElement('div')).attr({
+          class: 'card-body'
+        });
+        box.append(cardbox);
+        cardbox.append(cardbody);
+        cardbody.append($('<div></div>',{text:device.name}));
+        // cardbody.append($('<label>',{text:device.current_state}));
+        // cardbody
+        // .append(
+        //   $(document.createElement('input')).attr({
+        //     id:  device.deviceId
+        //     ,class: 'device'
+        //     ,name: 'device'
+        //     ,value: 'on'
+        //     ,type:  'submit'
+        //     ,onclick: 'updateStateOn('+device.deviceId+')'
+        //   })
+        // );
+        // cardbody
+        // .append(
+        //   $(document.createElement('input')).attr({
+        //     id:  device.deviceId
+        //     ,class: 'device'
+        //     ,name: 'device'
+        //     ,value: 'off'
+        //     ,type:  'submit'
+        //     ,onclick: 'updateStateOff('+device.deviceId+')'
+        //   })
+        // );
+        if (device.current_state == 'on')
+          cardbody.append($('<br><div><label class="switch"><input type="checkbox" checked="true" value="'+device.deviceId+'"><span class="slider round"></span></label></div>'));
+        if (device.current_state == 'off')
+        cardbody.append($('<br><div><label class="switch"><input type="checkbox" value="'+device.deviceId+'"><span class="slider round"></span></label></div>'));
+        // cardbody.append($('<hr>'));
+        cardbody.append($('<label>',{text:device.description}));
         $('#select-devices').append(box);
       });
     }); 
