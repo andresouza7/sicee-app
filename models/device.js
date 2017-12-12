@@ -2,21 +2,9 @@ let mongoose = require('mongoose');
 
 // Article Schema
 let deviceSchema = mongoose.Schema({
-  deviceId: {
-    type: String,
-    required: true
-  },
   name:{
     type: String,
     required: true
-  },
-  description:{
-    type: String,
-    default: "..."
-  },
-  created_at:{
-    type: Date,
-    default: Date.now()
   },
   current_state: {
     type: String,
@@ -25,6 +13,14 @@ let deviceSchema = mongoose.Schema({
   change_state: {
     type: String,
     default: "off"
+  },
+  pipe: {
+    type: String,
+    default:""
+  },
+  sync: {
+    type:Boolean,
+    default:false
   }
 });
 

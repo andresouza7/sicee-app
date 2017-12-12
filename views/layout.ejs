@@ -101,7 +101,6 @@
             <% if (user) { %>
               <li class="nav-item"><a class="nav-link" href="/users/logout">Logout</a></li>
             <% } else { %>
-              <li class="nav-item"><a class="nav-link active" href="/users/register">Registrar</a></li>
               <li class="nav-item"><a class="nav-link active" href="/users/login">Login</a></li>
             <% } %>
           </ul>
@@ -141,12 +140,5 @@
     <script src="/js/dashboardFeed.js"> </script>
     <script src="/js/telemetryFeed.js"> </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.js"></script>
-    
-    <script type="text/javascript">
-      // var c1 = document.getElementById("chart1");
-      // weeklyConsumptionChart(c1);
-      var c2 = document.getElementById("chart2");
-      weeklyConsumptionPerDeviceChart(c2);
-    </script>
   </body>
 </html>

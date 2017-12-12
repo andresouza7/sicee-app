@@ -1,0 +1,31 @@
+body {
+    /* font-family: 'Varela Round', sans-serif; */
+    font-family: 'Play', sans-serif;
+}
+
+img{width:100%;}
+
+table{font-size:14}
+
+.device-box h4{
+    margin:2px;
+}
+.list-group.device-box{
+    margin:2px;
+}
+.list-group-item.device-box{
+    padding:1px;
+    border: none
+}
+.panel-body.device-box{
+    padding:5px;
+    margin-bottom:0px;
+}
+.panel-heading.device-box{
+    padding:5px;
+    margin-bottom:0px;
+}
+
+footer {
+    font-size:12px;
+}

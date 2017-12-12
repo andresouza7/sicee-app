@@ -1,0 +1,36 @@
+<div class="panel panel-default" ng-controller="StatisticsController as statsController">
+  <div class="panel-heading">
+    <h3 class="panel-title">Consumo detalhado</h3>
+  </div>
+  <div class="panel-body">
+		<div class="row"  >
+			<div class="row">
+				<div class="col-md-6" ng-init="statsController.getMonthConsumption()">
+					<div class="charjs-size-monitor">
+						<canvas id="totalConsChart"></canvas>
+					</div>
+				</div>
+				<div class="col-md-6" ng-init="statsController.getDeviceConsumption()">
+					<div class="charjs-size-monitor">
+						<canvas id="deviceConsChart"></canvas>
+					</div>
+				</div>
+			</div>
+			<ul>
+					<li>Média diária: {{statsController.avg | number:2}} Wh</li>
+					<li>Consumo hoje relativo à média: {{statsController.avgVsToday | number:2}} %</li>
+					<li>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</li>
+				</ul>
+			<!-- <div ng-repeat="item in statsController.consumption | orderBy:'_id'">
+				<div class="col-md-6">
+					<div class="col-md-6">
+						<h4>Dia {{item._id}}</h4>
+						<p>Total: {{item.total | number:2}} Wh</p>
+					</div>
+				</div>
+			</div> -->
+		</div>
+  
+  </div>
+</div>
+

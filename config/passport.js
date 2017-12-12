@@ -6,12 +6,16 @@ const bcrypt = require('bcryptjs');
 module.exports = function(passport){
   // Local Strategy
   passport.use(new LocalStrategy(function(username, password, done){
+    console.log("running");
+    console.log(username);
+    console.log(password);
     // Match Username
     let query = {username:username};
     User.findOne(query, function(err, user){
       if(err) throw err;
       if(!user){
         return done(null, false, {message: 'No user found'});
+        console.log("No user found");
       }
 
       // Match Password
@@ -21,6 +25,7 @@ module.exports = function(passport){
           return done(null, user);
         } else {
           return done(null, false, {message: 'Wrong password'});
+          console.log("Wrong password");
         }
       });
     });

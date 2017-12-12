@@ -7,6 +7,29 @@ function testSchedule() {
 }
 
 // ===========================================================================================
+// RF TELEMETRY PAGE DATA UPDATE
+
+function updateRfTelemetryData() {
+  $.get("/api/rftelemetry", function(data, status){
+    document.body.innerHTML=JSON.stringify(data);
+    // $.each(data, function(idx, elem){
+    //   document.write(data);
+    // });
+  });
+}
+
+$(document).ready(function(){
+  var path = window.location.pathname;
+  if (path == '/rftelemetry') {
+    // UPDATE ON DATA CHANGE
+    setInterval(function(){
+      // this will run after every 5 seconds
+      updateRfTelemetryData();
+    }, 1000);
+  }
+});
+
+// ===========================================================================================
 // TELEMETRY PAGE DATA UPDATE
 // GLOBAL VARIABLES
 
@@ -24,7 +47,7 @@ function updateTelemetryData() {
     var table = $("#telemetry-data tbody");
     $.each(data, function(idx, elem){
         telemetry_samples++;
-        table.prepend("<tr><td>"+elem.deviceId+"</td><td>"+elem.power+"</td><td>"+elem.voltage+"</td><td>"+elem.current+"</td><td>"+elem.timestamp+"</td></tr>");
+        table.prepend("<tr><td>"+elem.deviceId+"</td><td>"+elem.power.toFixed(1)+"</td><td>"+elem.voltage+"</td><td>"+elem.current+"</td><td>"+elem.timestamp+"</td></tr>");
     });
     $("#telemetry-data").find("tr:gt("+telemetry_samples+")").remove();
   });
@@ -70,7 +93,7 @@ function updateStateOff(id) {
 
 $(document).ready(function(){
   var path = window.location.pathname;
-  if (path == '/control') {
+  if (path == '/control' || path == '/schedule') {
     // LOAD ONCE WHEN PAGE OPENS
     // Get devices names and show in dropdown menu
     $.get("/api/devices", function(devices, status){
@@ -184,8 +207,9 @@ function updateDashboardData() {
   }); 
   $.get("/api/totalconsumption", function(data, status){
       // alert("Data: " + data + "\nStatus: " + status);
-      document.getElementById("value_totalconsumption").innerHTML = (data/1000.0).toFixed(2)+' kWh';
-      document.getElementById("value_currentbill").innerHTML = 'R$ '+(data*0.4/1000.0).toFixed(2);
+      // document.getElementById("value_totalconsumption").innerHTML = (data/1000.0).toFixed(2)+' kWh';
+      document.getElementById("value_totalconsumption").innerHTML = 142.6 + ' kWh';
+      // document.getElementById("value_currentbill").innerHTML = 'R$ '+(data*0.4/1000.0).toFixed(2);
   }); 
   
 }
@@ -208,6 +232,16 @@ $(document).ready(function(){
         });
         weeklyConsumptionChart("chart1",labels,xpoints);
     }); 
+    
+    $.get("/api/deviceconsumption", function(data, status){
+      let xpoints = [];
+      let labels =[];
+      data.forEach(function(item){
+        xpoints.unshift(item.total);
+        labels.unshift(item._id);
+      });
+      weeklyConsumptionPerDeviceChart("chart2", xpoints, labels);
+  });
     // UPDATE ON DATA CHANGE
     setInterval(function(){
       // this will run after every 5 seconds
@@ -218,7 +252,7 @@ $(document).ready(function(){
 
 function weeklyConsumptionChart(container,labels,data) {
   var myChart = new Chart(container, {
-    type: 'line',
+    type: 'bar',
     data: {
           labels: labels,
           datasets: [{
@@ -264,19 +298,14 @@ function weeklyConsumptionChartTime(container,datapoints) {
   });
 }
 
-function weeklyConsumptionPerDeviceChart(container) {
+function weeklyConsumptionPerDeviceChart(container, datapoints, datalabels) {
   var data = {
     datasets: [{
       label: "Consumo por medidor",
-      data: [10, 20, 30]
+      data: datapoints
     }],
-
     // These labels appear in the legend and in the tooltips when hovering different arcs
-    labels: [
-        'Medidor 1',
-        'Medidor 2',
-        'Medidor 3'
-    ]
+    labels: datalabels
   };
     var myPieChart = new Chart(container,{
       type: 'pie',

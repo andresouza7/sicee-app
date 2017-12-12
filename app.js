@@ -28,10 +28,10 @@ const app = express();
 let Article = require('./models/article');
 
 // Load View Engine
-app.set('views', path.join(__dirname, 'views'));
-app.engine('ejs', require('express-ejs-extend'));
-app.set('view engine', 'ejs');
-app.engine('html',require('ejs').renderFile);
+// app.set('views', path.join(__dirname, 'views'));
+// app.engine('ejs', require('express-ejs-extend'));
+// app.set('view engine', 'ejs');
+// app.engine('html',require('ejs').renderFile);
 
 
 // =============================================
@@ -45,7 +45,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 // Set Public Folder
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'client')));
 
 // Express Session Middleware
 app.use(session({
@@ -109,72 +109,27 @@ app.post('/', function(req, res){
   res.send(200);
 });
 
-// AGENDA
-// const Agenda = require('agenda');
-// var mongoConnectionString = config.database;
-// var agenda = new Agenda({db: {address: mongoConnectionString}});
-
-// // RESUME STOPEED TASKS
-// agenda.on('ready', function() {
-//     agenda.jobs({nextRunAt: {$ne:null}}, function(err, jobs) {
-//     console.log(jobs[0].attrs.name);
-//     agenda.define(jobs[0].attrs.name, function(job, done) {
-//       // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-//       console.log('initiating task...');
-//       done();
-//     });
-//     agenda.every(jobs[0].attrs.repeatInterval, jobs[0].attrs.name);
-//     agenda.processEvery('10 seconds');
-//     agenda.start();
-//   });
-// });
-
 var Agenda = require('agenda');
 var Agendash = require('agendash');
 
 var agenda = new Agenda({db: {address: config.database}});
 
-
 // =============================================
 // MIDDLEWARE ENDS HERE
 
-// Home Route
-// app.get('/', function(req, res){
-//   Article.find({}, function(err, articles){
-//     if(err){
-//       console.log(err);
-//     } else {
-//       res.render('index', {
-//         title:'Articles',
-//         articles: articles
-//       });
-//     }
-//   });
-// });
-
 // Route Files
 let index = require('./routes/index');
-let articles = require('./routes/articles');
 let devices = require('./routes/devices');
 let users = require('./routes/users');
 let api = require('./routes/api');
 let schedule = require('./routes/agenda');
-let telemetry = require('./routes/telemetry');
-let alerts = require('./routes/alerts');
-let automation = require('./routes/automation');
-let control = require('./routes/control');
 
 app.use('/', index);
-app.use('/articles', articles);
 app.use('/devices', devices);
 app.use('/users', users);
 app.use('/api', api);
-app.use('/telemetry', telemetry);
 app.use('/agendash', Agendash(agenda));
-app.use('/automation', automation);
 app.use('/schedule', schedule);
-app.use('/alerts', alerts);
-app.use('/control',control);
 
 // Start Server
 function normalizePort(val) {

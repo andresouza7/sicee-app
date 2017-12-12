@@ -18,13 +18,20 @@ router.get('/', function(req, res){
       if(err){
         console.log(err);
       } else {
-        console.log(devices);
+        // console.log(devices);
         res.render('devices', {
           title:'Devices',
           devices: devices
         });
       }
     });
+});
+
+// Get by id
+router.get('/:id', function(req, res){
+  Device.findById(req.params.id, function(err, device){
+    res.json(device);
+  });
 });
 
 // Add Route
@@ -36,34 +43,24 @@ router.get('/add', ensureAuthenticated, function(req, res){
 
 // Add Submit POST Route
 router.post('/add', function(req, res){
-  req.checkBody('name','Name is required').notEmpty();
-  //req.checkBody('author','Author is required').notEmpty();
-  req.checkBody('description','Description is required').notEmpty();
+  let device = new Device();
+  device.name = req.body.name;
 
-  // Get Errors
-  let errors = req.validationErrors();
-
-  if(errors){
-    res.render('add_device', {
-      title:'Add Device',
-      errors:errors
-    });
-  } else {
-    let device = new Device();
-    device.name = req.body.name;
-    device.description = req.body.description;
-    device.created_at = Date.now();
-
-    device.save(function(err){
-      if(err){
-        console.log(err);
-        return;
-      } else {
-        req.flash('success','Device Added');
-        res.redirect('/');
-      }
-    });
-  }
+  device.save(function(err){
+    if(err){
+      console.log(err);
+      res.sendStatus(500);
+      return;
+    } else {
+      Device.find({name:device.name}).exec(function (err, device){
+        if (err) {
+          res.sendStatus(500);
+        } else {
+          res.json(device);
+        }
+      });
+    }
+  });
 });
 
 // Load Edit Form
@@ -77,12 +74,31 @@ router.get('/edit/:id', ensureAuthenticated, function(req, res){
 });
 
 // Update Submit POST Route
-router.post('/edit/:id', function(req, res){
+// router.post('/edit/:id', function(req, res){
+//   let device = {};
+//   device.name = req.body.name;
+//   device.description = req.body.description;
+
+//   let query = {_id:req.params.id}
+
+//   Device.update(query, device, function(err){
+//     if(err){
+//       console.log(err);
+//       return;
+//     } else {
+//       req.flash('success', 'Device Updated');
+//       res.redirect('/');
+//     }
+//   });
+// });
+
+router.put('/:_id', function(req, res){
+  console.log(req.body);
   let device = {};
   device.name = req.body.name;
   device.description = req.body.description;
 
-  let query = {_id:req.params.id}
+  let query = {_id:req.params._id}
 
   Device.update(query, device, function(err){
     if(err){
@@ -90,16 +106,30 @@ router.post('/edit/:id', function(req, res){
       return;
     } else {
       req.flash('success', 'Device Updated');
-      res.redirect('/');
+      res.sendStatus(200);
+    }
+  });
+});
+
+// RF TETHER
+router.post('/sync/', function(req, res){
+  console.log(req.body);
+  Device.update({_id:req.body.id}, {sync:req.body.sync}, function(err){
+    if(err){
+      console.log(err);
+      res.sendStatus(500);
+      return;
+    } else {
+      res.sendStatus(200);
     }
   });
 });
 
 // Delete Article
 router.delete('/:id', function(req, res){
-  if(!req.user._id){
-    res.status(500).send();
-  }
+  // if(!req.user._id){
+  //   res.status(500).send();
+  // }
 
   let query = {_id:req.params.id}
 

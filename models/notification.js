@@ -11,7 +11,7 @@ let notificationSchema = mongoose.Schema({
   },
   timestamp:{
     type: Date,
-    default: Date.now().toString()
+    default: Date.now()
   },
   solved:{
   	type: Boolean,

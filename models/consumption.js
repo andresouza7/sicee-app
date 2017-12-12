@@ -13,6 +13,18 @@ let consumptionSchema = mongoose.Schema({
   timestamp:{
     type: Date,
     required: true
+  },
+  month:{
+    type:Number,
+    required: true
+  },
+  day:{
+    type:Number,
+    required: true
+  },
+  hour:{
+    type:Number,
+    required: true
   }
 });
 

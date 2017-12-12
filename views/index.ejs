@@ -6,17 +6,17 @@
   <hr>
   <h3 id="dashboardStatisticsTitle">Estatísticas</h3>
   <div class="row">
-    <div class="col-lg-3">
+    <!-- <div class="col-lg-3">
       <div class="card text-white text-center bg-primary mb-3" style="max-width: 20rem;">
         <div class="card-header" id="title_totalpower">Potência instantânea</div>
         <div class="card-body">
           <h4 class="card-title" id="value_totalpower"></h4>
-          <!-- <p class="card-text">++</p> -->
+          <p class="card-text">++</p>
         </div>
       </div>
-    </div>
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-success mb-3" style="max-width: 20rem;">
+    </div> -->
+    <div class="col-lg-4">
+      <div class="card text-white text-center bg-success mb-3">
         <div class="card-header" id="title_totalconsumption">Consumo acumulado</div>
         <div class="card-body">
           <h4 class="card-title" id="value_totalconsumption"></h4>
@@ -24,20 +24,20 @@
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-secondary mb-3" style="max-width: 20rem;">
-        <div class="card-header" id="title_currentbill">Conta atual</div>
+    <div class="col-lg-4">
+      <div class="card text-white text-center bg-secondary mb-3">
+        <div class="card-header" id="title_currentbill">Dia de maior consumo</div>
         <div class="card-body">
-          <h4 class="card-title" id="value_currentbill">R$ 21,43</h4>
+          <h4 class="card-title" id="value_currentbill">Domingo</h4>
           <!-- <p class="card-text">++</p> -->
         </div>
       </div>
     </div>
-    <div class="col-lg-3">
-      <div class="card text-white text-center bg-info mb-3" style="max-width: 20rem;">
-        <div class="card-header" id="title_estimatedbill">Projeção para o mês</div>
+    <div class="col-lg-4">
+      <div class="card text-white text-center bg-info mb-3">
+        <div class="card-header" id="title_estimatedbill">Pico de demanda</div>
         <div class="card-body">
-          <h4 class="card-title" id="value_estimatedbill">R$ 321,3</h4>
+          <h4 class="card-title" id="value_estimatedbill">18h às 21h</h4>
           <!-- <p class="card-text">+++++</p> -->
         </div>
       </div>
@@ -47,18 +47,27 @@
 </div>
 
 <div class="container">
-  <h3>Gráficos</h3>
   <div class="row">
-      <div class="col">
-        <div class="charjs-size-monitor">
-          <canvas id="chart1" width="600px" height="300px"></canvas>
+    <div class="col-md-6">
+      <div class="card text-black text-center">
+          <div class="card-header">Consumo médio diário</div>
+          <div class="card-body">
+              <div class="charjs-size-monitor">
+                  <canvas id="chart1"></canvas>
+                </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="col"></div>
-      <div class="charjs-size-monitor">
-        <canvas id="chart2" width="400" height="250"></canvas>
-      </div>
-    </div>
+      <div class="col-md-6">
+          <div class="card text-black text-center">
+              <div class="card-header">Consumo por medidor</div>
+              <div class="card-body">
+                  <div class="charjs-size-monitor">
+                      <canvas id="chart2"></canvas>
+                    </div>
+              </div>
+            </div>
+          </div>
   </div>
 </div>
 <br>

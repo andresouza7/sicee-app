@@ -1,0 +1,59 @@
+<div class="panel panel-default" ng-controller="DashboardController as dashController">
+  <div class="panel-heading">
+    <h3 class="panel-title">Monitoramento de dispositivos</h3>
+  </div>
+  <div class="panel-body">
+    <div class="row" ng-init="dashController.getTelemetry()">
+
+    	<div ng-repeat="item in dashController.devices | orderBy:'telemetry.timestamp'">
+    		<div class="col-sm-3">
+					<div class="panel panel-default">
+						<div class="panel-heading device-box text-center">
+							<label class="panel-title">{{item.name | uppercase}}</label>
+						</div>
+					<div class="panel-body device-box text-left">
+					<!-- <h4>{{item.name}}</h4> -->
+					<ul class="list-group device-box">
+							<li class="list-group-item device-box" ng-if="item.telemetry"><label>Rádio</label> <span class="label label-success">conectado</span></li>
+							<li class="list-group-item device-box" ng-if="!item.telemetry"><label>Rádio</label> <span class="label label-warning">sem sinal</span></li>
+							<!-- <li class="list-group-item device-box"><label>Radiofrequência</label> {{ item.telemetry ? "com sinal" : "sem sinal" }}</li> -->
+							<div ng-switch="item.current_state">
+								<li class="list-group-item device-box" ng-switch-when="on"><label>Relé</label> <span class="label label-success">{{item.current_state}}</span></li>
+								<li class="list-group-item device-box" ng-switch-when="off"><label>Relé</label> <span class="label label-danger">{{item.current_state}}</span></li>
+							</div>
+							<li class="list-group-item device-box"><label>Potência</label>
+								<span class="label label-default"> {{item.telemetry.power | number:2}} W </span>
+							</li>
+							<li class="list-group-item device-box"><label>Tensão</label>
+								<span class="label label-default"> {{item.telemetry.voltage | number:2}} V </span>
+							</li>
+							<li class="list-group-item device-box"><label>Corrente</label>
+								<span class="label label-default"> {{item.telemetry.current | number:2}} A </span>
+							</li>
+							<li class="list-group-item device-box"><label>Última atualização</label> {{item.telemetry.timestamp | date:'HH:mm:ss' : 'UTC'}}</li>
+							<li class="list-group-item device-box">
+								<button ng-click="dashController.turnOn(item._id)" class="btn btn-success" ng-disabled="!item.telemetry">
+									<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> Ligar
+								</button>
+								<button ng-click="dashController.turnOff(item._id)" class="btn btn-danger" ng-disabled="!item.telemetry">
+									<span class="glyphicon glyphicon-off" aria-hidden="true"></span> Desligar
+								</button>
+							</li>
+						</ul>
+					
+				</div>
+				</div>
+				</div>
+
+    	</div>
+    </div>
+  </div>
+</div>
+<div class="panel panel-info">
+		<div class="panel-heading">
+			<h3 class="panel-title">Avisos do sistema</h3>
+		</div>
+		<div class="panel-body">
+			...
+		</div>
+	</div>

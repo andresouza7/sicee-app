@@ -14,19 +14,19 @@ db.getCollection('DevicesTelemetry').find({device_id:2,'telemetry.power':{$gt:10
 db.getCollection('DevicesTelemetry').find({device_id:2,'telemetry.power':{$gt:1000,$lt:1700}},{device_id:0})
 
 // Filter nested element
-db.getCollection('Telemetry').find({'Total.power':70})
+db.getCollection('telemetry').find({'Total.power':70})
 
 // Limit number of restults
-db.getCollection('Telemetry').find({'Total.power':70}).limit(1)
+db.getCollection('telemetry').find({'Total.power':70}).limit(1)
 
 // Sum all consumption, no filters
-db.getCollection('consumptions').aggregate([{$group:{_id:null,total:{$sum:"$consumption"}}}])
+db.getCollection('consumption').aggregate([{$group:{_id:null,total:{$sum:"$consumption"}}}])
 
 // Sum total comsumption within time range
-db.getCollection('consumptions').aggregate([{$match:{timestamp:{$gte:1505672394124,$lte:1505672406063}}},{$group:{_id:null,total:{$sum:"$consumption"}}}])
+db.getCollection('consumption').aggregate([{$match:{timestamp:{$gte:1505672394124,$lte:1505672406063}}},{$group:{_id:null,total:{$sum:"$consumption"}}}])
 
 // Sum of all consumption grouped by device
-db.getCollection('consumptions').aggregate([{$match:{timestamp:{$gte:1505672394124,$lte:1505672406063}}},{$group:{_id:"$deviceId",total:{$sum:"$consumption"},count:{$sum:1}}}])
+db.getCollection('consumption').aggregate([{$match:{timestamp:{$gte:1505672394124,$lte:1505672406063}}},{$group:{_id:"$deviceId",total:{$sum:"$consumption"},count:{$sum:1}}}])
 
 // Sum of all comsumption grouped by device
-db.getCollection('consumptions').aggregate([{$group:{_id:"$deviceId",total:{$sum:"$consumption"},count:{$sum:1}}}])
+db.getCollection('consumption').aggregate([{$group:{_id:"$deviceId",total:{$sum:"$consumption"},count:{$sum:1}}}])

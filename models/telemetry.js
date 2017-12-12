@@ -21,6 +21,18 @@ let telemetrySchema = mongoose.Schema({
   timestamp:{
     type: Date,
     required: true
+  },
+  month:{
+    type:Number,
+    required: true
+  },
+  day:{
+    type:Number,
+    required: true
+  },
+  hour:{
+    type:Number,
+    required: true
   }
 });
 // Thir argument will be the collection name in the database

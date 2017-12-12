@@ -1,0 +1,133 @@
+<html ng-app="myApp">
+<head>
+  <title>SICEE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css?family=Play|Quicksand|Varela+Round" rel="stylesheet">
+</head>
+<body>
+	<nav class="navbar navbar-default" ng-controller="UsersController as usersController" ng-init="usersController.getCookieData()">
+      <!-- <button class="btn btn-default" ng-click="usersController.debug()">test</button> -->
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#/dashboard">SICEE</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav navbar-left">
+              <li><a href="#/dashboard"><span class="glyphicon glyphicon-home" aria-hidden="true"></span> Supervisório</a></li>
+              <li><a href="#/statistics"><span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Estatísticas</a></li>
+              <li><a href="#/devices"><span class="glyphicon glyphicon-cog" aria-hidden="true"></span> Dispositivos</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+              <li ng-if="usersController.user">
+                  <a href="#/account">
+                    <span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{usersController.user.username}}
+                  </a>
+                </li>
+              <li ng-if="usersController.user" data-toggle="modal" data-target="#loginScreen" ng-click="usersController.clearCookieData()">
+                <a href="#/">
+                  <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Sair
+                </a>
+              </li>
+              <li ng-if="!usersController.user">
+                <a href="#/account">
+                  <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Nova conta
+                </a></li>
+              <li ng-if="!usersController.user">
+                <a href="#/" data-toggle="modal" data-target="#loginScreen">
+                  <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Entrar
+              </a></li>
+            </ul>
+      </div>
+    </nav>
+
+    <div class="container">
+    	<div class="row">
+        <button class="btn btn-warning" ng-if="device.isTethered" data-toggle="modal" data-target="#loginScreen">Ping</button>
+        <div class="modal fade" id="loginScreen" role="dialog" ng-controller="UsersController as usersController">
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">LOGIN</h4>
+              </div>
+              <div class="modal-body">
+                <form name="loginForm">
+                  <p>
+                    <h4>Usuário</h4>
+                    <input type="text" class="form-control" placeholder="******" ng-model="usersController.login_data.username" required>
+                  </p>	
+                  <p>
+                    <h4>Senha</h4>
+                    <input type="text" class="form-control" placeholder="******" ng-model="usersController.login_data.password" required>
+                  </p>	
+                  <div>
+                    <button type="button" class="btn btn-success btn-md" data-target="#collapseNewDevice" ng-disabled="loginForm.$invalid" ng-click="usersController.login()">
+                      <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Entrar
+                    </button>
+                    <button type="button" class="btn btn-default btn-md" data-dismiss="modal" data-target="#collapseNewDevice">
+                      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <!-- <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="devController.stopRfPing(device._id)">Ping</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>
+              </div> -->
+            </div>
+          </div>
+        </div>
+    		<div class="col-md-12">
+    			<div ng-view></div>
+    		</div>
+    	</div>
+     </div>
+
+     
+     <footer>
+      <div class="container">
+      <div class="panel">
+        <div class="row">
+          <!-- <div class="col col-lg-6">
+            <div class="row justify-content-md-end">
+              <img src="/img/unifaplogo.png" class="rounded" alt="unifap" width="140px" height="100px">
+            </div>
+          </div> -->
+          <div class="col-md-6 text-right">
+            <p><b>UNIVERSIDADE FEDERAL DO AMAPÁ</b><br>
+            <b>ENGENHARIA ELÉTRICA</b><br>
+            Trabalho de Conclusão de Curso<br></p>
+            </div>
+            <div class="col-md-6 text-left">
+            <p>André Souza @ souza.andre1993@gmail.com<br>
+            Lucas Rodrigues @ lucas.rilario@gmail.com<br>
+            Copyright &copy; 2017<br></p>
+          </div>
+        </div>
+      </div>
+      </div>
+     </footer>
+    </div><!-- /.container -->
+	<script src="/bower_components/jquery/dist/jquery.js"></script>
+  <script src="/bower_components/angular/angular.js"></script>
+  <script src="/bower_components/angular/angular-cookies.js"></script>
+	<script src="/bower_components/angular-route/angular-route.js"></script>
+	<script src="/bower_components/bootstrap/dist/js/bootstrap.js"></script>
+  <script src="/app.js"></script>
+  <script src="/controllers/users.js"></script>
+  <script src="/controllers/dashboard.js"></script>
+  <script src="/controllers/devices.js"></script>
+  <script src="/controllers/statistics.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.bundle.js"></script>
+</body>
+</html>
