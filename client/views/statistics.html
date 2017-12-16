@@ -19,7 +19,14 @@
 			<ul>
 					<li>Média diária: {{statsController.avg | number:2}} Wh</li>
 					<li>Consumo hoje relativo à média: {{statsController.avgVsToday | number:2}} %</li>
+					<li>Consumo acumulado no mês: implementar</li>
 					<li>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</li>
+					<hr>
+					<li>Gráfico com consumo por dispositivo</li>
+					<li>Inteligência Artificial para
+						detectar os horários e dias em que pode haver redução de consumo
+						e sugerir ações de controle
+					</li>
 				</ul>
 			<!-- <div ng-repeat="item in statsController.consumption | orderBy:'_id'">
 				<div class="col-md-6">

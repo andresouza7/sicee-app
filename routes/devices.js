@@ -3,29 +3,8 @@ const router = express.Router();
 
 // Device Model
 let Device = require('../models/device');
-// Article Model
-let Article = require('../models/article');
 // User Model
 let User = require('../models/user');
-
-// Device root Route
-router.get('/', function(req, res){
-  Device.
-    find({}).
-    // where('created_at').
-    // gt(1505440700000).lt(1505440900000).
-    exec(function(err, devices){
-      if(err){
-        console.log(err);
-      } else {
-        // console.log(devices);
-        res.render('devices', {
-          title:'Devices',
-          devices: devices
-        });
-      }
-    });
-});
 
 // Get by id
 router.get('/:id', function(req, res){
@@ -34,11 +13,21 @@ router.get('/:id', function(req, res){
   });
 });
 
-// Add Route
-router.get('/add', ensureAuthenticated, function(req, res){
-  res.render('add_device', {
-    title:'Add Device'
+// Filter by text
+router.get('/search/:device_name', function(req, res){
+  let filter = '/'+req.params.device_name+'/';
+  console.log(filter);
+  var getValue='abc';
+  var regexValue='\.*'+req.params.device_name+'\.';
+ 
+  Device.find({"name":new RegExp(regexValue, 'i')} , {_id:1,name:1},function(err, device){
+    if (device) {
+    res.json(device);
+    console.log(device);
+    }
+    else res.sendStatus(500);
   });
+  // res.sendStatus(200);
 });
 
 // Add Submit POST Route
@@ -72,25 +61,6 @@ router.get('/edit/:id', ensureAuthenticated, function(req, res){
     });
   });
 });
-
-// Update Submit POST Route
-// router.post('/edit/:id', function(req, res){
-//   let device = {};
-//   device.name = req.body.name;
-//   device.description = req.body.description;
-
-//   let query = {_id:req.params.id}
-
-//   Device.update(query, device, function(err){
-//     if(err){
-//       console.log(err);
-//       return;
-//     } else {
-//       req.flash('success', 'Device Updated');
-//       res.redirect('/');
-//     }
-//   });
-// });
 
 router.put('/:_id', function(req, res){
   console.log(req.body);
@@ -149,18 +119,6 @@ router.delete('/:id', function(req, res){
     // }
   });
 });
-
-// Get Single Article
-// router.get('/:id', function(req, res){
-//   Article.findById(req.params.id, function(err, article){
-//     User.findById(article.author, function(err, user){
-//       res.render('article', {
-//         article:article,
-//         author: user.name
-//       });
-//     });
-//   });
-// });
 
 // Access Control
 function ensureAuthenticated(req, res, next){

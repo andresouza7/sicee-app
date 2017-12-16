@@ -21,6 +21,10 @@ let deviceSchema = mongoose.Schema({
   sync: {
     type:Boolean,
     default:false
+  },
+  telemetry: {
+    type: Object,
+    default: null
   }
 });
 

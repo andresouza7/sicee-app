@@ -1,4 +1,23 @@
-var myApp = angular.module('myApp',['ngRoute','ngCookies']);
+var myApp = angular.module('myApp',['ngRoute','ngCookies','moment-picker']);
+
+myApp.factory("Alert",['$timeout',function($timeout) {
+	var type;
+	var msg;
+
+	this.setMsg = function(inputmsg) {
+		msg = inputmsg;
+	};
+	this.class = function(success) {
+		if (success)
+		return "alert alert-success";
+		else return "alert alert-danger";
+	}
+
+	return {
+		msg: msg,
+		class: this.class
+	};
+  }]);
 
 myApp.config(function($routeProvider){
 	$routeProvider.when('/', {
@@ -25,3 +44,4 @@ myApp.config(function($routeProvider){
 		redirectTo: '/'
 	});
 });
+

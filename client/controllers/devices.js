@@ -4,11 +4,6 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 	console.log('DevicesController loaded...');
 
 	var devController = this;
-	var datenow = new Date(Date.now());
-	var dateBegin = new Date(datenow.getFullYear(),datenow.getMonth(),1);
-	var dateEnd = new Date(datenow.getFullYear(),datenow.getMonth()+1,0);
-	console.log("dateBegin: "+dateBegin.toISOString());
-	console.log("dateEnd: "+dateEnd.toISOString());
 
 	devController.getDevices = function(){
 		$http.get('/api/devices').then(function(response) {
@@ -27,9 +22,9 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 			if (item._id == id) {
 				item.name = devController.edit_device.name;
 				$http.put('/devices/'+id, devController.edit_device).then(function(response) {
-					console.log(devController.devices);
-					console.log(response.data);
-					// window.location.href='#/devices';
+					// console.log(devController.devices);
+					// console.log(response.data);
+					// window.location.href='#/';
 				});
 			}
 		});
@@ -41,12 +36,12 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 				devController.devices.push(item);
 			});
 			console.log(response.data);
-			// window.location.href='#/books';
+			// window.location.href='#/';
 		});
 	}
 
 	devController.deleteDevice = function(id){
-		if (confirm("Apagar este dispositivo excluirá tambem as estatísticas referentes a ele. Deseja prosseguir?")){
+		if (confirm("Apagar este dispositivo excluirá também as estatísticas referentes a ele. Deseja prosseguir?")){
 			$http.delete('/devices/'+id).then(function(response){
 				devController.devices.forEach(function(item,index) {
 					if (item._id == id) {
@@ -58,6 +53,7 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 		} 
 	}
 
+	// tethers a virtual device to a physical board
 	devController.rfTether = function(id, sync){
 		let info = {
 			id,
@@ -92,36 +88,4 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 		});
 	}
 
-	$scope.getBooks = function(){
-		$http.get('/api/books').success(function(response){
-			$scope.books = response;
-		});
-	}
-
-	$scope.getBook = function(){
-		var id = $routeParams.id;
-		$http.get('/api/books/'+id).success(function(response){
-			$scope.book = response;
-		});
-	}
-
-	$scope.addBook = function(){
-		console.log($scope.book);
-		$http.post('/api/books/', $scope.book).success(function(response){
-			window.location.href='#/books';
-		});
-	}
-
-	$scope.updateBook = function(){
-		var id = $routeParams.id;
-		$http.put('/api/books/'+id, $scope.book).success(function(response){
-			window.location.href='#/books';
-		});
-	}
-
-	$scope.removeBook = function(id){
-		$http.delete('/api/books/'+id).success(function(response){
-			window.location.href='#/books';
-		});
-	}
 }]);

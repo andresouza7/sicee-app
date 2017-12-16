@@ -24,9 +24,6 @@ db.on('error', function(err){
 // Init App
 const app = express();
 
-// Bring in Models
-let Article = require('./models/article');
-
 // Load View Engine
 // app.set('views', path.join(__dirname, 'views'));
 // app.engine('ejs', require('express-ejs-extend'));
@@ -110,26 +107,19 @@ app.post('/', function(req, res){
 });
 
 var Agenda = require('agenda');
-var Agendash = require('agendash');
-
 var agenda = new Agenda({db: {address: config.database}});
 
 // =============================================
 // MIDDLEWARE ENDS HERE
 
-// Route Files
-let index = require('./routes/index');
+// Route APIs
 let devices = require('./routes/devices');
 let users = require('./routes/users');
 let api = require('./routes/api');
-let schedule = require('./routes/agenda');
 
-app.use('/', index);
 app.use('/devices', devices);
 app.use('/users', users);
-app.use('/api', api);
-app.use('/agendash', Agendash(agenda));
-app.use('/schedule', schedule);
+app.use('/api', api); // api for sicee board http connection
 
 // Start Server
 function normalizePort(val) {

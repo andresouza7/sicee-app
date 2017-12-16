@@ -14,27 +14,52 @@ let Consumption = require('../models/consumption');
 let TotalPower = require('../models/total_power');
 // Notification Model
 let Notification = require('../models/notification');
+// Automation Model
+let Automation = require('../models/automation');
 // Device Model
 let Device = require('../models/device');
 // RF telemetry Model
 let RfTelemetry = require('../models/rftelemetry');
 
-//planned changes referenced as 'implement'
+// ========================= NOTES ON TIME CONVERSION !!! =============================
+
+// All time dependent fields of Telemetry, Consumption and TotalPower Models are converted to local time
+// to allow the execution of statistics queries per day and hour on the db, otherwise the samples gathered
+// starting at 21h would be considered as part of the next day and the resulting statistics
+// queries would return wrong daily and hourly averages. When the client requests data in the UI, the
+// API sends a raw json file with the result of MongoDB aggregation pipeline, with all times already
+// stored in the local timezone. In the front-end, Angular makes sure timezone offsets are not applied to the data.
+
+// All other time dependent variables are stored in UTC format as there is no need for conversion, even the
+// timestamps for automation tasks. In the UI,Angular inserts the timezone offset according to the user timezone.
+
+// ========================= NOTES ON TIME CONVERSION !!! =============================
+
 function getLocalDate () {
 	let dateUTC = new Date(Date.now()); 
 	let offsetMs = dateUTC.getTimezoneOffset()*60000;
-	let localDate = new Date(Date.now()-offsetMs);
-	return (localDate);
-}
-function getHourOffset () {
-	let dateUTC = new Date(Date.now()); 
-	let offsetMs = dateUTC.getTimezoneOffset()*60000;
 	let offsetHr = dateUTC.getTimezoneOffset()/60;
-	return (offsetHr);
+	let localDate = new Date(Date.now()-offsetMs);
+	let year = localDate.getFullYear();
+	let month = localDate.getMonth()+1; //this offset will have to be apllied in each API route when retrieving data.
+	// getMonth()+1 stores months in the range of 1 to 12, which makes it easier to display data in the UI
+	// When getting data from the API, just add the offset to obtain months in the range of 0 to 11, which
+	// is the javascript standard.
+	let day = localDate.getDate();
+	let hour = localDate.getHours()+offsetHr; // prevents the bug of the final 3h of the day being added to the next one
+		if (hour >= 24)
+			hour = hour - 24;
+	return ({
+		timestamp: localDate,
+		year: year,
+		month: month,
+		day: day,
+		hour: hour
+	});
 }
 
 function updateState(devId,state) {
-	Device.update({deviceId: devId}, {change_state:state}, function(err){
+	Device.update({_id: devId}, {change_state:state}, function(err){
 		if(err){
 		  console.log(err);
 		  return;
@@ -42,6 +67,56 @@ function updateState(devId,state) {
 	});
 }
 
+// createAgendaJob serves two route, the automation schedule route and the
+// conditional notifications route.
+function createAgendaJob (jobName,deviceId,execTime,action) {
+	var mongoConnectionString = config.database;
+	var agenda = new Agenda({db: {address: mongoConnectionString}});
+	
+	switch (action){
+		case "on":
+			agenda.define(jobName, function(job, done) {
+				console.log('Ligando medidor '+deviceId+'...');
+				updateState(deviceId,'on');
+				done();
+			});
+			break;
+		case "off":
+			agenda.define(jobName, function(job, done) {
+				console.log('Ligando medidor '+deviceId+'...');
+				updateState(deviceId,'off');
+				done();
+			});
+			break;
+		default:
+	}
+	agenda.on('ready', function() {
+	  agenda.schedule(execTime, jobName);
+	  agenda.start();
+	});
+
+	agenda.processEvery('10 seconds');
+}
+
+// Serves whichever route needs to send an sms notification
+function smsAlert (username, phone, msg) {
+	// Implement code here to search the database for twilio
+	// account information...
+	var accountSid = 'ACb0e73e47de7ee5b38ae6017ce90d5dff'; // Your Account SID from www.twilio.com/console
+	var authToken = 'eeb9b7799954136b89a6a13852badd5f';   // Your Auth Token from www.twilio.com/console
+
+	var twilio = require('twilio');
+	var client = new twilio(accountSid, authToken);
+
+	client.messages.create({
+	    body: msg,
+	    to: phone,  // Text this number
+	    from: '+12818237943' // From a valid Twilio number
+	})
+	.then((message) => console.log(message.sid));
+}
+
+// =========================== HTTP ROUTES ===========================
 
 // RF TELEMETRY get
 router.get('/rftelemetry', function(req, res){
@@ -67,7 +142,7 @@ router.get('/devices/state/update/on/:_id', function(req, res){
 		  return;
 		}
 	});
-  });
+});
 
 // SET DEVICE STATE OFF
 router.get('/devices/state/update/off/:_id', function(req, res){
@@ -79,7 +154,7 @@ router.get('/devices/state/update/off/:_id', function(req, res){
 		  return;
 		}
 	});
-  });
+});
 
 // GET DEVICES
 router.get('/devices', function(req, res){
@@ -92,8 +167,8 @@ router.get('/devices', function(req, res){
 		//   console.log(devices);
 		  res.json(devices);
 		}
-	  });
-  });
+	});
+});
 
 // SMS MESSAGING SERVICE
 router.post('/smsAlert',function(req, res){
@@ -104,7 +179,7 @@ router.post('/smsAlert',function(req, res){
 	var client = new twilio(accountSid, authToken);
 
 	client.messages.create({
-	    body: 'sicee alerta',
+	    body: 'sicee: power off on meter 1',
 	    to: '+5596981150386',  // Text this number
 	    from: '+12818237943' // From a valid Twilio number
 	})
@@ -112,100 +187,121 @@ router.post('/smsAlert',function(req, res){
 	res.send(200);
 });
 
+// CHECK SYSTEM CONNECTION
+router.get('/checkConnection',function(req,res){
+	let startAt = new Date(getLocalDate().timestamp-10000);
+	// console.log("start = "+startAt);
+	Telemetry.findOne({timestamp:{$gt: startAt}}).exec(function (err, telemetry) {
+		// console.log(telemetry);
+		if (err)
+			console.log(err);
+		res.json(telemetry);
+	});
+});
 // GET LATEST TELEMETRY
 router.get('/telemetry',function(req,res){
-	let startAt = new Date(getLocalDate()-10000);
-	// console.log(startAt);
-	let endAt = getLocalDate();
-	// console.log(endAt);
-	Telemetry.find({timestamp:{$gte: startAt,$lt: endAt}}).exec(function (err, telemetry) {
-		// console.log(telemetry)
+	let startAt = new Date(getLocalDate().timestamp-10000);
+	// console.log("start = "+startAt);
+	Telemetry.find({timestamp:{$gt: startAt}}).exec(function (err, telemetry) {
+		// console.log(telemetry);
 		if (err)
 			console.log(err);
 		res.json(telemetry);
 	});
 });
 
+router.get('/schedule/search/', function (req,res){
+	Automation.find({}).sort({nextRunAt:-1}).limit(10).exec(function(err,list) {
+		res.send(list);
+	}); 
+});
+router.delete('/schedule/delete/:_id', function (req,res){
+	Automation.remove({_id:req.params._id}, function(err){
+        if(err){
+          console.log(err);
+        }
+        res.send('Success');
+      });
+});
+
 // SCHEDULE EVENTS
-// TURN ON
-router.post('/schedule/on_once',function(req,res){
-	console.log(req.body);
-	let deviceId = req.body.deviceId;
-	let startTime = req.body.startTime;
+router.post('/schedule/',function(req,res){
+	let data = req.body;
+	console.log(data);
+	let startTime = new Date(data.action.on.time);
+	let endTime = new Date(data.action.off.time);
+
 	var mongoConnectionString = config.database;
 	var agenda = new Agenda({db: {address: mongoConnectionString}});
 	
-	let startJobName = 'Ligar medidor '+deviceId; 
-	agenda.define(startJobName, function(job, done) {
-	  // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
-		console.log('Ligando medidor '+deviceId+'...');
-		updateState(deviceId,'on');
-	  done();
-	});
-	agenda.on('ready', function() {
-	  agenda.schedule(startTime, startJobName);
-	  agenda.start();
+	var smsMsg = "SICEE: "+data.notify.username;
+	if (data.devices_list.length > 1)
+		smsMsg+=", os equipamentos ";
+	else smsMsg+=", o equipamento ";
+	data.devices_list.forEach(function (device){
+		smsMsg += device.name+", ";
 	});
 
-	agenda.processEvery('10 seconds');
-	res.send(200);
-});
-
-// TURN OFF
-router.post('/schedule/off_once',function(req,res){
-	console.log(req.body);
-	let deviceId = req.body.deviceId;
-	let startTime = req.body.startTime;
-	var mongoConnectionString = config.database;
-	var agenda = new Agenda({db: {address: mongoConnectionString}});
+	if (data.action.on.checked) {
+		if (data.devices_list.length > 1)
+			smsMsg += "foram ligados.";
+		else smsMsg+= "foi ligado";
+		let jobName = startTime.toISOString();
+		agenda.define(jobName, function(job, done) {
+			console.log(jobName);
+			var jobdata = job.attrs.data;
+			jobdata.devices_list.forEach(function (device){
+				updateState(device._id,'on');
+			});
+			smsAlert(data.notify.username, data.notify.phone,smsMsg);
+			done();
+		});
+		agenda.on('ready', function() {
+			data.agendaJob = true;
+			agenda.schedule(startTime, jobName, data);
+			agenda.start();
+		});
+		agenda.processEvery('10 seconds');
+	}
+	if (data.action.off.checked) {
+		if (data.devices_list.length > 0)
+			smsMsg += "foram ligados.";
+		else smsMsg+= "foi ligado.";
+		let jobName = endTime.toISOString();
+		agenda.define(jobName, function(job, done) {
+			console.log(jobName);
+			var jobdata = job.attrs.data;
+			jobdata.devices_list.forEach(function (device){
+				updateState(device._id,'off');
+			});
+			smsAlert(data.notify.username, data.notify.phone,smsMsg);
+			done();
+		});
+		agenda.on('ready', function() {
+			data.agendaJob = false;
+			agenda.schedule(endTime, jobName, data);
+			agenda.start();
+		});
+		agenda.processEvery('10 seconds');
+	}
 	
-	let startJobName = 'Desligar medidor '+deviceId; 
-	agenda.define(startJobName, function(job, done) {
-		console.log('Desligando medidor '+deviceId+'...');
-		updateState(deviceId,'off');
-	  done();
-	});
-	agenda.on('ready', function() {
-	  agenda.schedule(startTime, startJobName);
-	  agenda.start();
-	});
-
-	agenda.processEvery('10 seconds');
-	res.send(200);
-});
-
-// TURN ON AND OFF ONCE
-router.post('/schedule/on_off_once',function(req,res){
-	console.log(req.body);
-	let deviceId = req.body.deviceId;
-	let startTime = req.body.startTime;
-	let endTime = req.body.endTime;
-	var mongoConnectionString = config.database;
-	var agenda = new Agenda({db: {address: mongoConnectionString}});
+	// OLD CODE, FOR REFECENCE:
+	// var mongoConnectionString = config.database;
+	// var agenda = new Agenda({db: {address: mongoConnectionString}});
 	
-	let startJobName = 'Ligar medidor '+deviceId; 
-	agenda.define(startJobName, function(job, done) {
-		console.log('Ligando medidor '+deviceId+'...');
-		updateState(deviceId,'on');
-	  done();
-	});
-	agenda.on('ready', function() {
-	  agenda.schedule(startTime, startJobName);
-	  agenda.start();
-	});
+	// let startJobName = 'Ligar medidor '+deviceId; 
+	// agenda.define(startJobName, function(job, done) {
+	//   // User.remove({lastLogIn: { $lt: twoDaysAgo }}, done);
+	// 	console.log('Ligando medidor '+deviceId+'...');
+	// 	updateState(deviceId,'on');
+	//   done();
+	// });
+	// agenda.on('ready', function() {
+	//   agenda.schedule(startTime, startJobName);
+	//   agenda.start();
+	// });
 
-	let endJobName = 'Desligar medidor '+deviceId; 
-	agenda.define(endJobName, function(job, done) {
-		console.log('Desligando medidor '+deviceId+'...');
-		updateState(deviceId,'off');
-	  done();
-	});
-	agenda.on('ready', function() {
-	  agenda.schedule(endTime, endJobName);
-	  agenda.start();
-	});
-
-	agenda.processEvery('10 seconds');
+	// agenda.processEvery('10 seconds');
 	res.send(200);
 });
 
@@ -371,43 +467,34 @@ router.get('/deviceconsumption', function(req, res){
 
 // GET TOTAL CONSUMPTION WITHIN TIME RANGE
 router.get('/totalconsumptionforperiod', function(req, res){
-	let datenow = new Date(Date.now());
-	var dateBegin = new Date(datenow.getFullYear(),datenow.getMonth(),1);
-	var dateEnd = new Date(datenow.getFullYear(),datenow.getMonth()+1,0);		
-	// if (typeof req.query.startAt != 'undefined' || typeof req.query.endAt != 'undefined') {
-		Consumption.aggregate([{$match:{timestamp:{$gte:dateBegin,$lte:dateEnd}}},{$group:{_id:{$dayOfMonth:"$timestamp"},total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
-	      if(err){
-	        console.log(err);
-	      } else {
-	        res.json(consumption);
-	      }
-	    });
-	// } else {
-	// 	res.send('Define start and end date in milliseconds standard, like so: <BR>api/deviceconsumptionforperiod?startAt=1505672394124&endAt=1505672406063');
-	// }
+	var startAt = new Date(getLocalDate().year,getLocalDate().month-1,1); // adjust 1-12 to 0-11 month scale
+	var endAt = new Date(getLocalDate().year,getLocalDate().month,0); // same as above	
+	// query option using $dayOfMonth: _id:{$dayOfMonth:"$timestamp"}
+	Consumption.aggregate([{$match:{timestamp:{$gte:startAt,$lte:endAt}}},{$group:{_id:"$day",total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
+		if(err){
+		console.log(err);
+		} else {
+		res.json(consumption);
+		}
+	});
 });
 
-// GET CONSUMPTION FOR EACH DEVICE WITHIN TIME RANGE
+// GET HOURLY CONSUMPTION FOR SPECIFIC DAY
 router.get('/deviceconsumptionforperiod', function(req, res){
-		
-	let today = new Date().getDate();
-	console.log(getLocalDate());
-	console.log(today);
-		// if (typeof req.query.startAt != 'undefined' || typeof req.query.endAt != 'undefined') {
-		Consumption.aggregate([{$match:{day:11}},{$group:{_id:{$hour:"$timestamp"},total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
-	      if(err){
-	        console.log(err);
-	      } else {
-	        res.json(consumption);
-	      }
-	    });
-	// } else {
-	// 	res.send('Define start and end date in milliseconds standard, like so: <BR>api/deviceconsumptionforperiod?startAt=1505672394124&endAt=1505672406063');
-	// }
+	let today = getLocalDate().day;
+	// if (typeof req.query.startAt != 'undefined' || typeof req.query.endAt != 'undefined') {
+	Consumption.aggregate([{$match:{day:today}},{$group:{_id:"$hour",total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
+		if(err){
+		console.log(err);
+		} else {
+		res.json(consumption);
+		}
+	});
 });
 
 //use of typeof
 // if(typeof deviceId == 'undefined' || typeof power == 'undefined' || typeof voltage == 'undefined' || typeof current == 'undefined')
+
 // GET NOTIFICATIONS FROM DATABASE
 router.get('/notifications', function(req, res) {
 	Notification.find({}, {_id:0,__v:0}).exec(function(err, notifications) {
@@ -475,12 +562,14 @@ router.post('/rftelemetry', function(req, res){
 // VOLTAGE AND CURRENT READINGS
 router.post('/telemetry', function(req, res) {
 	// console.log(req.body);
-	var telemetry_list = [];
-	var consumption_list = [];
+	var telemetry_list = []; // Receives each device's telemetry data
+	var consumption_list = []; // either
 	
 	function checkPipe (callback) {
 		req.body.forEach(function(item, index){
-			let pipe = item.substring(0, 1); //pay attention the the type string or int
+			var pipe = item.substring(0, 1); // This needs to be a string rather than an Int because in the front-end
+											 // Javascript interprets a 0 int as false and will say the device is not paired
+											 // even if it's connected to pipe 0
 			Device.findOne({pipe: pipe}).exec(function(err, device) { 
 				//for each sample uploaded, check if a virtual device is connected to the pipe sending the data
 				if (err) {
@@ -499,35 +588,44 @@ router.post('/telemetry', function(req, res) {
 						// console.log(irms);
 						// console.log(power);
 
-						let sampleRateH = 10.0/3600.0; // 10 seconds converted to hour
+						let sampleRateInHours = 10.0/3600.0; // 10 seconds converted to hour
 						let telemetry = new Telemetry();
 						let consumption = new Consumption();
 
+						telemetry.radioconn = true;
 						telemetry.deviceId = devId;
+						telemetry.deviceName = device.name;
 						telemetry.power = power;
 						telemetry.voltage = vrms;
 						telemetry.current = irms;
-						telemetry.timestamp = getLocalDate();
-						telemetry.month = getLocalDate().getMonth()+1;
-						telemetry.day = getLocalDate().getDate();
-						telemetry.hour = getLocalDate().getHours()+getHourOffset();
-						console.log("timestamp: "+telemetry.timestamp);
-						console.log("month: "+telemetry.month);
-						console.log("day: "+telemetry.day);
-						console.log("hour: "+telemetry.hour);
+						telemetry.timestamp = getLocalDate().timestamp;
+						telemetry.month = getLocalDate().month;
+						telemetry.day = getLocalDate().day;
+						telemetry.hour = getLocalDate().hour;
+						console.log("telemetry received at "+telemetry.timestamp);
+						// console.log("month: "+telemetry.month);
+						// console.log("day: "+telemetry.day);
+						// console.log("hour: "+telemetry.hour);
 						
 						consumption.deviceId = devId;
-						consumption.consumption = power*sampleRateH;
-						consumption.timestamp = getLocalDate();
-						consumption.month = getLocalDate().getMonth()+1;
-						consumption.day = getLocalDate().getDate();
-						consumption.hour = getLocalDate().getHours()+getHourOffset();
+						consumption.consumption = power*sampleRateInHours;
+						consumption.timestamp = getLocalDate().timestamp;
+						consumption.month = getLocalDate().month;
+						consumption.day = getLocalDate().day;
+						consumption.hour = getLocalDate().hour;
 						telemetry_list.push(telemetry);
 						consumption_list.push(consumption);
-				
-						// SNIPPETS BELOW ARE FILTERS FOR DEVICE STATE CHANGES AND WARNINGS
 
-						// FEEDBACK FROM METER TO UPDATE CURRENT DEVICE STATE
+						// Updates the telemetry field of the devices sending data. This will indicate
+						// which devices are connected and which are not
+						Device.update({_id: device._id},{telemetry: telemetry}).exec(function(err, res){
+							if (err)
+								log(err);
+						});
+
+						// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
+						// This keeps tasks in memory. So if a command fails to execute,
+						// the server will keep sending it until it does.
 						if (relayState==1) {
 							Device.update({pipe: pipe}, {current_state:"on"}, function(err){
 								if(err){
@@ -543,6 +641,11 @@ router.post('/telemetry', function(req, res) {
 								}
 							});
 						}
+
+						// ==========================================================
+						// RULES DEFINED BY THE USER FOR AUTOMATION AND NOTIFICATIONS
+						// *** START ***
+						
 						// DETECT IF VOLTAGE IS 127V OR 220V
 						const voltage_max_threshold_127 = 135.0;
 						const voltage_min_threshold_127 = 110.0;
@@ -587,9 +690,14 @@ router.post('/telemetry', function(req, res) {
 								}
 							});
 						}
-						//When telemetry from all devices have been read, proceed with the code
+
+						// RULES DEFINED BY THE USER FOR AUTOMATION AND NOTIFICATIONS
+						// *** END ***
+						// ==========================================================
+					
+						// When telemetry from all devices have been read, execute the code that
+						// depend from the asynchronous result.
 						if (index == req.body.length-1) {
-							// console.log("loop:"+req.body.length);
 							callback();
 						}
 					} else {
@@ -612,7 +720,7 @@ router.post('/telemetry', function(req, res) {
 								});
 							} else {
 								res.json([]);
-								console.log("no devices ready to sync");
+								console.log("no pipe matches and no devices ready to sync");
 							}
 						});
 					}
@@ -636,25 +744,30 @@ router.post('/telemetry', function(req, res) {
 				console.log('Error saving to db: '+err);
 			}
 		});
-	
+
 		// SAVE DEVICES TELEMETRY READINGS TO DATABASE
 		Telemetry.insertMany(telemetry_list,function(err){
 			if(err){
 				console.log(err);
 			}
 		});
-	
+
 		// SAVE DEVICES CONSUMPTION DATA TO DATABASE
 		Consumption.insertMany(consumption_list,function(err){
 			if(err){
 				console.log(err);
 			}
 		});
-	
-		res.json([]);
-		// The response needs to be a JSON because the arduino uses the "[" and "]" symbols
-		// as reference to separate the body message from the headers and to close the connection
 	});
+	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	// EEEEEEEEEEEEEEEXXXTREMELY IMPORTANT
+	// The server needs send a JSON response because the arduino uses the "[" and "]" symbols
+	// as reference to identify where the response starts and ends, if doesnt find these symbols
+	// it wont close the current connection and so the next request will fail and telemetry
+	// data will be lost.
+	res.json([]);
 });
 
 module.exports = router;

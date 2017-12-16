@@ -5,7 +5,20 @@ body {
 
 img{width:100%;}
 
+.tips{
+    font-size:10px;
+}
+
 table{font-size:14}
+.odd { background-color: #000; }
+.even { background-color: #F00; }
+
+a.delete {
+    color: black;
+}
+a.delete:hover {
+    color: #e02200f1
+}
 
 .device-box h4{
     margin:2px;

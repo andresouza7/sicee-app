@@ -1,21 +1,27 @@
-<div class="panel panel-default" ng-controller="DashboardController as dashController">
+<div ng-controller="DashboardController as dashController">
+<div ng-init="checkConnection()">
+<div ng-class="connectionStatus ? 'alert alert-success text-center' : 'alert alert-danger text-center'" role="alert">
+	<span ng-class="connectionStatus ? 'glyphicon glyphicon-signal' : 'glyphicon glyphicon-warning-sign'" aria-hidden="true"></span> 
+	<label>{{connectionStatus ? 'GATEWAY ONLINE' : 'GATEWAY OFFLINE, aguardando conexão...'}}</label>
+</div>
+</div>
+<div class="panel panel-default">
   <div class="panel-heading">
     <h3 class="panel-title">Monitoramento de dispositivos</h3>
   </div>
-  <div class="panel-body">
+  <div class="panel-body" ng-controller="UsersController as usersController" ng-init="usersController.getCookieData()">
     <div class="row" ng-init="dashController.getTelemetry()">
-
-    	<div ng-repeat="item in dashController.devices | orderBy:'telemetry.timestamp'">
+    	<div ng-repeat="item in dashController.devices | orderBy:'item.telemetry.timestamp'">
     		<div class="col-sm-3">
 					<div class="panel panel-default">
 						<div class="panel-heading device-box text-center">
 							<label class="panel-title">{{item.name | uppercase}}</label>
 						</div>
-					<div class="panel-body device-box text-left">
+					<div class="panel-body device-box">
 					<!-- <h4>{{item.name}}</h4> -->
 					<ul class="list-group device-box">
-							<li class="list-group-item device-box" ng-if="item.telemetry"><label>Rádio</label> <span class="label label-success">conectado</span></li>
-							<li class="list-group-item device-box" ng-if="!item.telemetry"><label>Rádio</label> <span class="label label-warning">sem sinal</span></li>
+							<li class="list-group-item device-box" ng-if="item.connected"><label>Rádio</label> <span class="label label-success">conectado</span></li>
+							<li class="list-group-item device-box" ng-if="!item.connected"><label>Rádio</label> <span class="label label-warning">sem sinal</span></li>
 							<!-- <li class="list-group-item device-box"><label>Radiofrequência</label> {{ item.telemetry ? "com sinal" : "sem sinal" }}</li> -->
 							<div ng-switch="item.current_state">
 								<li class="list-group-item device-box" ng-switch-when="on"><label>Relé</label> <span class="label label-success">{{item.current_state}}</span></li>
@@ -30,18 +36,18 @@
 							<li class="list-group-item device-box"><label>Corrente</label>
 								<span class="label label-default"> {{item.telemetry.current | number:2}} A </span>
 							</li>
-							<li class="list-group-item device-box"><label>Última atualização</label> {{item.telemetry.timestamp | date:'HH:mm:ss' : 'UTC'}}</li>
-							<li class="list-group-item device-box">
-								<button ng-click="dashController.turnOn(item._id)" class="btn btn-success" ng-disabled="!item.telemetry">
-									<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> Ligar
+							<li class="list-group-item device-box"><label>Último log</label> {{item.telemetry.timestamp | date:'HH:mm:ss' : 'UTC'}}</li>
+							<li class="list-group-item device-box" ng-if="usersController.user">
+								<button ng-click="dashController.turnOn(item._id)" class="btn btn-success" ng-disabled="!item.connected">
+									<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> On
 								</button>
-								<button ng-click="dashController.turnOff(item._id)" class="btn btn-danger" ng-disabled="!item.telemetry">
-									<span class="glyphicon glyphicon-off" aria-hidden="true"></span> Desligar
+								<button ng-click="dashController.turnOff(item._id)" class="btn btn-danger" ng-disabled="!item.connected">
+									<span class="glyphicon glyphicon-off" aria-hidden="true"></span> Off
 								</button>
 							</li>
 						</ul>
-					
 				</div>
+				
 				</div>
 				</div>
 
@@ -49,11 +55,182 @@
     </div>
   </div>
 </div>
-<div class="panel panel-info">
+
+<div class="panel panel-default">
 		<div class="panel-heading">
-			<h3 class="panel-title">Avisos do sistema</h3>
+			<h3 class="panel-title">Automação por horário</h3>
 		</div>
-		<div class="panel-body">
-			...
+		<div class="col">
+				<div class="table-responsive">
+			<table class="table" ng-init="dashController.searchSchedule()">
+				<thead>
+					<tr>
+						<th scope="col"></th>
+						<th scope="col">Dispositivos</th>
+						<th scope="col">Horário</th>
+						<th scope="col">Ação</th>
+						<th scope="col">Usuário</th>
+						<th scope="col">Notificar</th>
+					</tr>
+				</thead>
+				<tbody ng-repeat="item in dashController.schedule_list | filter: devController.filterSchedule | orderBy:'nextRunAt'">
+					<tr>
+						<td><a href="" class="delete" ng-click="dashController.user ? dashController.deleteSchedule(item._id) : null"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+						<td>
+							<div ng-repeat="device in item.data.devices_list">{{device.name}}</div>
+						</td>
+						<td><div ng-class="item.nextRunAt ? '' : 'label label-success'">{{(item.nextRunAt ? item.nextRunAt : 'Executado') | date:'d/M/yy h:mm a'}}</div></td>
+						<td>{{item.data.agendaJob ? 'ligar' : 'desligar'}}</td>
+						<td>{{item.data.notify.username}}</td>
+						<td>{{item.data.notify.checked ? 'SMS' : ''}} <span ng-class="item.data.notify.checked ? 'glyphicon glyphicon-comment' : 'glyphicon glyphicon-ban-circle'"></span></td>
+					</tr>
+				</tbody>
+			</table>
+			</div>
+
+			<div class="container">
+			<div class="row">
+				<div class="col-xs-6">
+						<input type="text" class="form-control" placeholder="Filtrar por nome" ng-model="devController.filterSchedule">
+				</div>
+				<div class="col-xs-6">
+					<!-- <div class="pull-right"> -->
+					<button class="btn btn-primary" type="button" ng-if="dashController.user" data-toggle="collapse" data-target="#collapseSchedule" aria-expanded="false" aria-controls="collapseSchedule">
+					Adicionar
+					</button>
+					<!-- </div> -->
+				</div>
+			</div>
+			</div>
+			<div class="panel-body">
+			<div class="collapse" id="collapseSchedule">
+				<hr>
+				<form name="automationForm" ng-submit="dashController.schedule()" ng-init="dashController.setInputTime()">
+						<div class="form-group">
+							<label>Escolha um dispositivo <sup>*</sup></label>
+							<input type="text" class="form-control" placeholder="Nome..." ng-model="dashController.device_filter" ng-Keyup="dashController.device_filter == '' ? dashController.filter_list = null : null" ng-change="dashController.searchDevice()">
+						</div>
+							<span ng-repeat="item in dashController.filter_list">
+								<!-- <div class="label label-default"> -->
+								<button class="btn btn-default" data-ng-click="dashController.manage_dev_list(item,'add'); dashController.filter_list = null; dashController.device_filter = ''">
+									<span class="glyphicon glyphicon-plus" aria-hidden="true"></span> {{item.name | uppercase}}
+								</button>
+							<!-- </div> -->
+							</span>
+								<div class="tips" ng-if="dashController.auto_dev_list.length">Clique para remover</div>
+							<span ng-repeat="item in dashController.auto_dev_list">
+								<button class="btn btn-default btn-sm" data-ng-click="dashController.manage_dev_list(item,'remove')">
+									{{item.name | uppercase}} <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+								</button>
+							</span>
+							<div class="form-group">
+								<label>Comando <sup>*</sup></label>
+							</div>
+		
+							<div class="row">
+							<div class="col-sm-6">
+							<div class="form-group">
+								<label><input type="checkbox" ng-model="dashController.on_checked"> Ligar</label>
+								<div class="form-control"
+											moment-picker="dashController.time_start"
+											format="HH:mm:ss"
+											locale="pt-br"
+											ng-model="dashController.newJob.startTime"
+											disable="!dashController.on_checked"
+											ng-required="dashController.on_checked">
+									<a class="pull-right"
+											ng-if="dashController.newJob.startTime"
+											ng-click="dashController.newJob.startTime = undefined">
+										&times;
+									</a>
+									<span ng-class="{'text-muted': !dashController.newJob.startTime}">
+										{{ dashController.time_start || 'Definir horário' }}
+									</span>
+								</div>
+							</div>
+							</div>
+							<div class="col-sm-6">
+							<div class="form-group">
+								<label><input type="checkbox" ng-model="dashController.off_checked"> Desligar</label>
+								<div class="form-control"
+											moment-picker="dashController.time_end"
+											format="HH:mm:ss"
+											today="true"
+											locale="pt-br"
+											ng-model="dashController.newJob.endTime"
+											disable="!dashController.off_checked"
+											ng-required="dashController.off_checked">
+									<a class="pull-right"
+											ng-if="dashController.newJob.endTime"
+											ng-click="dashController.newJob.endTime = undefined"
+											min-date="dashController.newJob.startTime"
+											validate="true">
+										&times;
+									</a>
+									<span ng-class="{'text-muted': !dashController.newJob.endTime}">
+										{{ dashController.time_end || 'Definir horário' }}
+									</span>
+								</div>
+							</div>
+							</div>
+		
+							</div>
+							<label><input type="checkbox" ng-model="dashController.sms_checked" ng-disabled="!dashController.user.phone"> Enviar SMS</label><br><br>
+							<!-- <div class="form-group">
+								<label><input type="checkbox" ng-model="day"> Seg</label>
+								<label><input type="checkbox" ng-model="day"> Ter</label>
+								<label><input type="checkbox" ng-model="day"> Qua</label>
+								<label><input type="checkbox" ng-model="day"> Qui</label>
+								<label><input type="checkbox" ng-model="day"> Sex</label>
+								<label><input type="checkbox" ng-model="day"> Sab</label>
+								<label><input type="checkbox" ng-model="day"> Dom</label>
+								<label><input type="checkbox" ng-model="day"> Todos os dias</label>
+							</div> -->
+						<button type="submit" class="btn btn-default" data-toggle="collapse" data-target="#collapseSchedule"
+							ng-disabled="automationForm.$invalid || !dashController.auto_dev_list.length">Automatizar tarefa</button>
+						</form>
+			</div>
+			</div>
 		</div>
 	</div>
+
+<div class="panel panel-default">
+	<div class="panel-heading">
+		<h3 class="panel-title">Automação e alarmes condicionais</h3>
+	</div>
+	<div class="col">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th scope="col">Dispositivo</th>
+					<th scope="col">Condição</th>
+					<th scope="col">Tipo</th>
+					<th scope="col"></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>Todos</td>
+					<td>Consumo > 50kwh no mês</td>
+					<td>SMS</td>
+					<td><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></td>
+				</tr>
+				<tr>
+					<td>Todos</td>
+					<td>Corrente > 10 A</td>
+					<td>SMS</td>
+					<td><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></td>
+				</tr>
+				<tr>
+			</tbody>
+		</table>
+	</div>
+	<div class="col">
+		<div class="panel-body">
+			<button type="submit" class="btn btn-default" ng-model="edit">Gravar regra</button>
+			<button type="submit" class="btn btn-default" ng-model="edit">...</button>
+		</div>
+	</div>
+</div>
+
+</div>

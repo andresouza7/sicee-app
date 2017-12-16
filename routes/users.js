@@ -6,7 +6,7 @@ const passport = require('passport');
 // Bring in User Model
 let User = require('../models/user');
 
-// Change password
+// Update user password
 router.post('/password', function(req,res){
   let userId = req.body._id;
   let new_password = req.body.password;
@@ -27,7 +27,7 @@ router.post('/password', function(req,res){
   });
 });
 
-// Register Proccess
+// Register new user Proccess
 router.post('/register', function(req, res){
   const name = req.body.name;
   const email = req.body.email;
@@ -112,17 +112,14 @@ router.post('/login', passport.authenticate('local'),function(req,res){
   res.sendStatus(500);
 });
 
+// Update user data other than password
 router.put('/',function(req,res){
-  let new_data = req.body;
+  let new_data = req.body; // angular takes care of input validation
   User.update({_id: req.body._id},new_data).exec(function(err, response){
     if (err)
       console.log(err);
   });
   res.sendStatus(200);
-});
-
-router.get('/login/user',function(req,res){
-  res.json(user);
 });
 
 module.exports = router;

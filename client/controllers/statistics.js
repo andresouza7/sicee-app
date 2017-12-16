@@ -25,13 +25,17 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 
 			var datapoints = {
 				x:[],
+				avg:[],
 				y:[]
 			};
+			var avgbgcolor = [];
 			var bgcolor = [];
 			
 			for (let i=1; i<=daysOfMonth.getDate(); i++){
 				datapoints.x.push(0);
-				bgcolor.push('rgba(75, 192, 192, 0.2)');
+				datapoints.avg.push(statsController.avg);
+				avgbgcolor.push('rgba(0, 0, 0, 0.5)');
+				bgcolor.push('rgba(75, 234, 40, 0.5)');
 				datapoints.y.push(i);
 				statsController.consumption.forEach(function (item) {
 					if (datapoints.y[i-1]==item._id) {
@@ -40,19 +44,37 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 				})
 				
 			}
+
+			var chartData = {
+				labels: datapoints.y,
+				datasets: [{
+					type: 'bar',
+					label: 'kWh por dia',
+					backgroundColor: bgcolor,
+					borderWidth: 3,
+					fill: false,
+					data: datapoints.x,
+				}, {
+					type: 'line',
+					label: 'Média no mês',
+					fill: false,
+					backgroundColor: 'grey',
+					data: datapoints.avg,
+					borderColor: 'grey',
+					borderWidth: 2,
+				}]
+			};
+
 			var ctx = document.getElementById("totalConsChart");
 			var totalConsChart = new Chart(ctx, {
 				type: 'bar',
-				data: {
-					labels: datapoints.y,
-					datasets: [{
-						label: 'Consumo diário no mês (dia x Wh)',
-						data: datapoints.x,
-						backgroundColor: bgcolor,
-						borderWidth: 2
-					}]
-				},
+				data: chartData,
 				options: {
+					elements: {
+						point: {
+							radius: 0
+						}
+					},
 					scales: {
 						yAxes: [{
 							ticks: {
@@ -80,7 +102,7 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 						datapoints.x.push(item.total.toFixed(2));
 						let bin = item._id+1;
 						datapoints.y.push(item._id+"-"+bin);
-						bgcolor.push('rgba(75, 192, 192, 0.2)');
+						bgcolor.push('rgba(75, 192, 230, 0.4)');
 					}	
 				});
 			}
@@ -94,7 +116,7 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 						label: 'Consumo horário hoje (h/d x Wh)',
 						data: datapoints.x,
 						backgroundColor: bgcolor,
-						borderWidth: 2
+						borderWidth: 3
 					}]
 				},
 				options: {
@@ -110,16 +132,4 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 		});
 	}
 
-	$scope.updateStateOn = function(){
-		var id = $routeParams.id;
-		$http.put('/api/devices/state/on/'+id, $scope.device).then(function(response){
-			window.location.href='#/control';
-		});
-    }
-    $scope.updateStateOff = function(){
-		var id = $routeParams.id;
-		$http.put('/api/devices/state/off/'+id, $scope.device).then(function(response){
-			window.location.href='#/control';
-		});
-	}
 }]);

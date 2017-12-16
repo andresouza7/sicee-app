@@ -59,6 +59,7 @@
   <div class="panel-body" ng-init="usersController.getCookieData()">
     <div class="row">
       <div class="col-md-12">
+        <div class="table-responsive">
         <table class="table table-striped">
             <thead>
               <tr>
@@ -76,6 +77,7 @@
               <tr>
             </tbody>
           </table>
+        </div>
         <div class="col-md-6">
         <form name="personalDataForm" ng-if="usersController.togglePasswordForm" ng-submit="usersController.updateUserPassword()"> 
           <p><span class="label label-success">Dados de acesso</span></p>
@@ -135,8 +137,6 @@
 <div class="panel-body" ng-init="usersController.getCookieData()">
   <div class="row">
     <div class="col-md-12">
-      
-
       <table class="table table-striped">
         <thead>
           <tr>
@@ -148,8 +148,14 @@
         </thead>
         <tbody>
           <tr>
-            <td>Central de ar</td>
-            <td>Ligado em horário bloqueado</td>
+            <td>Todos</td>
+            <td>Consumo > 50kwh no mês</td>
+            <td>SMS</td>
+            <td><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></td>
+          </tr>
+          <tr>
+            <td>Todos</td>
+            <td>Corrente > 10 A</td>
             <td>SMS</td>
             <td><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></td>
           </tr>

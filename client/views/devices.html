@@ -12,23 +12,23 @@
 		</div>
 	</div>
 	<div class="collapse" id="collapseNewDevice">
-			<div class="well">
-				<form name="newDeviceForm">
-				<p>
-					<h4>Nome</h4>
-					<input type="text" class="form-control" placeholder="microondas, central..." ng-model="devController.new_device.name" required>
-				</p>	
-				<div>
-					<button type="button" class="btn btn-success btn-sm" data-toggle="collapse" data-target="#collapseNewDevice" ng-disabled="newDeviceForm.$invalid" ng-click="devController.addDevice()">
-						<span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Salvar
-					</button>
-					<button type="button" class="btn btn-default btn-sm" data-toggle="collapse" data-target="#collapseNewDevice">
-						<span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancelar
-					</button>
-				</div>
-				</form>
+		<div class="well">
+			<form name="newDeviceForm">
+			<p>
+				<h4>Nome</h4>
+				<input type="text" class="form-control" placeholder="microondas, central..." ng-model="devController.new_device.name" required>
+			</p>	
+			<div>
+				<button type="submit" class="btn btn-success btn-sm" data-toggle="collapse" data-target="#collapseNewDevice" ng-disabled="newDeviceForm.$invalid" ng-click="devController.addDevice()">
+					<span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Salvar
+				</button>
+				<button type="button" class="btn btn-default btn-sm" data-toggle="collapse" data-target="#collapseNewDevice">
+					<span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancelar
+				</button>
 			</div>
-			</div>
+			</form>
+		</div>
+	</div>
 <br>
 
 <div class="panel panel-default">
@@ -38,14 +38,14 @@
   <div class="panel-body" ng-init="devController.getDevices()">
 		<div class="row">
 			<div ng-repeat="device in devController.devices | filter: devController.searchDevice | orderBy:'name'">
-					<div class="col-md-6">
+					<div class="col-sm-4">
 							<h4>{{device.name | uppercase}}</h4>
-							<ul>
-									<li>WEBid: {{device._id}}</li>
-									<li>Estado atual: {{device.current_state | uppercase}}</li>
-									<li>Estado definido pelo usuário: {{device.change_state | uppercase}}</li>
-									<li>RFid: {{device.pipe}} <label ng-if="device.pipe==''">Dispositivo não pareado</label></li>
-							</ul>
+							<span>
+									<div><label>WEBid:</label> {{device._id}}</div>
+									<div><label>Estado atual:</label> {{device.current_state | uppercase}}</div>
+									<div><label>Estado definido pelo usuário:</label> {{device.change_state | uppercase}}</div>
+									<div><label>RFid:</label> {{device.pipe}} <label ng-if="device.pipe==''">Dispositivo não pareado</label></div>
+							</span>
 							<button class="btn btn-primary" data-toggle="modal" data-target="#edit{{device._id}}">
 								<span class="glyphicon glyphicon-edit" aria-hidden="true"></span> Editar
 							</button>
