@@ -75,4 +75,17 @@ myApp.controller('UsersController', ['$scope', '$cookies','$interval', '$http', 
 		usersController.getCookieData(); // user variable becomes undefined since there is no data in session
 		window.location.reload();
 	}
+
+	usersController.hardreset = function () {
+		if (confirm("Todas as regras programadas e os dados coletados serão apagados. Confirmar execução?")) {
+			if (confirm("Tem certeza de verdade?")) {
+				if (confirm("Mesmo?")) {
+					$http.delete('/api/hardreset').then(function(response) {
+						alert(response.data);
+						console.log(response.data);
+					});
+				}
+			}
+		}
+	}
 }]);

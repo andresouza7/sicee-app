@@ -30,3 +30,10 @@ db.getCollection('consumption').aggregate([{$match:{timestamp:{$gte:150567239412
 
 // Sum of all comsumption grouped by device
 db.getCollection('consumption').aggregate([{$group:{_id:"$deviceId",total:{$sum:"$consumption"},count:{$sum:1}}}])
+
+// Update multiple documents in a collection
+db.getCollection('telemetry').update(
+    { hour: { $eq: 27 } },
+    { $set: { hour: 3 } },
+    { multi: true }
+ )

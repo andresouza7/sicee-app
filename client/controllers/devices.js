@@ -68,10 +68,10 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 						console.log(response.data);
 						var retry = -(60 - (times++));
 						devController.tetherMsg = "Aguardando conexão, " + retry + " segundos";
-						if (response.data.pipe != null){
+						if (response.data.pipe != ""){
 							devController.tetherMsg = "Dispositivo pareado";
 							devController.devices.forEach(function(item){
-								if (item._id == id)
+								if (String(item._id) == String(id))
 									item.isTethered = true;
 							})
 							$interval.cancel(promise);

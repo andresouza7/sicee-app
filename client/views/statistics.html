@@ -1,43 +1,57 @@
-<div class="panel panel-default" ng-controller="StatisticsController as statsController">
-  <div class="panel-heading">
-    <h3 class="panel-title">Consumo detalhado</h3>
-  </div>
-  <div class="panel-body">
-		<div class="row"  >
-			<div class="row">
-				<div class="col-md-6" ng-init="statsController.getMonthConsumption()">
+<div class="statisticsPage" ng-controller="StatisticsController as statsController">
+	<div class="panel panel-default" >
+		<div class="panel-heading">
+			<h3 class="panel-title">Estatísticas do mês</h3>
+		</div>
+		<div class="panel-body">
+			<div class="col-md-6" ng-init="statsController.getConsumptionPerDay()">
+				<div class="row">
+					<h5 class="text-center">Consumo por dia</h5>
 					<div class="charjs-size-monitor">
-						<canvas id="totalConsChart"></canvas>
+						<canvas id="dailyConsumptionChart"></canvas>
 					</div>
 				</div>
-				<div class="col-md-6" ng-init="statsController.getDeviceConsumption()">
+				<hr>
+				<div>Média diária: {{statsController.avg | number:2}} Wh</div>
+				<div>Consumo hoje relativo à média: {{statsController.avgVsToday | number:2}} %</div>
+				<div>Consumo acumulado no mês: {{statsController.consMonth | number:2}} Wh | {{statsController.consMonth/1000 | number:2}} kWh</div>
+				<div>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h3 class="panel-title">Estatísticas do dia</h3>
+		</div>
+		<div class="panel-body">
+			<div class="col-md-6" ng-init="statsController.getConsumptionPerHour()">
+				<div class="row">
+				<h5 class="text-center">Consumo por hora</h5>
+				<div class="charjs-size-monitor">
+					<canvas id="hourlyConsumptionChart"></canvas>
+				</div>
+				</div>
+				<hr>
+				<p><strong>Horários de maior consumo</strong></p>
+				<ul class="list-group device-box" ng-repeat="item in statsController.excess_consumption | orderBy:'_id'">
+					<li class="list-group-item device-box">hora: {{item._id}} h, consumo: {{item.total | number:1}} Wh</li>
+				</ul>
+			</div>
+
+			<div class="col-md-6" ng-init="statsController.getConsumptionPerDevice(); statsController.getUsagePerDay()">
+				<div class="row">
+					<h5 class="text-center">Consumo por dispositivo</h5>
 					<div class="charjs-size-monitor">
-						<canvas id="deviceConsChart"></canvas>
+						<canvas id="deviceConsumptionChart"></canvas>
 					</div>
+				</div>
+				<hr>
+				<p>Horas de funcionamento hoje</p>
+				<div ng-repeat="device in statsController.usagePerDay">
+					<div>{{device.name | uppercase}} : {{device.usage | number:2}} h</div>
 				</div>
 			</div>
-			<ul>
-					<li>Média diária: {{statsController.avg | number:2}} Wh</li>
-					<li>Consumo hoje relativo à média: {{statsController.avgVsToday | number:2}} %</li>
-					<li>Consumo acumulado no mês: implementar</li>
-					<li>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</li>
-					<hr>
-					<li>Gráfico com consumo por dispositivo</li>
-					<li>Inteligência Artificial para
-						detectar os horários e dias em que pode haver redução de consumo
-						e sugerir ações de controle
-					</li>
-				</ul>
-			<!-- <div ng-repeat="item in statsController.consumption | orderBy:'_id'">
-				<div class="col-md-6">
-					<div class="col-md-6">
-						<h4>Dia {{item._id}}</h4>
-						<p>Total: {{item.total | number:2}} Wh</p>
-					</div>
-				</div>
-			</div> -->
 		</div>
-  
-  </div>
+	</div>
 </div>
-

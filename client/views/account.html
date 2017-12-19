@@ -121,6 +121,7 @@
         ng-click="usersController.togglePersonalDataForm = true; usersController.togglePasswordForm = false">Alterar dados</button>
         <button type="submit" class="btn btn-default" ng-model="edit" ng-if="!usersController.togglePersonalDataForm && !usersController.togglePasswordForm"
         ng-click="usersController.togglePasswordForm = true; usersController.togglePersonalDataForm = false">Mudar senha</button>
+        <button type="button" class="btn btn-danger" ng-click="usersController.hardreset()">Resetar Sistema</button>
         
       </div>
       </div>

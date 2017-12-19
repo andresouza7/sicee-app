@@ -1,23 +1,21 @@
 var myApp = angular.module('myApp',['ngRoute','ngCookies','moment-picker']);
 
-myApp.factory("Alert",['$timeout',function($timeout) {
-	var type;
-	var msg;
-
-	this.setMsg = function(inputmsg) {
-		msg = inputmsg;
-	};
-	this.class = function(success) {
-		if (success)
-		return "alert alert-success";
-		else return "alert alert-danger";
+myApp.factory("log",function($http,$q,$rootScope) {
+	var register = function(data) {
+		$http.post('/api/log/',data).then(function(response) {
+			console.log(response.data);
+		});
 	}
 
 	return {
-		msg: msg,
-		class: this.class
+		register: register,
+		getlogs: function() {
+            return $http.get("/api/log/").then(function(response) {
+                return response.data;
+            });
+        }
 	};
-  }]);
+  });
 
 myApp.config(function($routeProvider){
 	$routeProvider.when('/', {

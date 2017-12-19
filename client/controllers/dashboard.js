@@ -1,10 +1,13 @@
 var myApp = angular.module('myApp');
 
-myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$timeout', '$http', '$location', '$routeParams','Alert', function($scope,$cookies, $interval, $timeout, $http, $location, $routeParams){
+myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$timeout', '$http', '$location', '$routeParams','log', function($scope,$cookies, $interval, $timeout, $http, $location, $routeParams,log){
 	console.log('DashboardController loaded...');
 
 	dashController = this;
 	dashController.user = $cookies.getObject("user_account");
+	log.getlogs().then(function(data){
+		$scope.logs = data;
+	});
 
 	function getLocalDate () { // function for time conversion used in the API
 		let dateUTC = new Date(Date.now()); 
@@ -29,16 +32,6 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 		});
 	}
 
-	// Check system connection
-	$scope.checkConnection = function () {
-		$http.get('/api/checkConnection').then(function(response){
-			console.log("response data "+response.data); // response is the latest telemetry
-			if (response.data)
-				$scope.connectionStatus = true;
-			else $scope.connectionStatus = null;
-			console.log("CONNECTION STATUS "+$scope.connectionStatus);
-		});
-	}
 	// Get telemetry from all devices
 	dashController.getTelemetry = function(){
 		$http.get('/api/devices').then(function(response) {
@@ -51,33 +44,45 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 					// console.log("TELEMETRY DATE "+telemetryTimestamp);
 					if (timestampNow - telemetryTimestamp  <= 10000) { // if within the sampling period, then it is connected
 						device.connected = true;
-					} else { device.connected = false;}
+						dashController.connectionStatus = true; // If there is at least one sample within the sampling
+																// period then it means the gateway is online
+					} else { 
+						device.connected = false;
+						dashController.connectionStatus = false;}
 				} else {
 					device.connected = false;
 				}
 			});
+			if (dashController.connectionStatus == false){
+				// log.register({event:"Gateway desconectado"});
+				$http.get('/api/log/checkSystemStatus/on').then(function(response) {
+					console.log("system check response"+response.data);
+				});
+			}
+			if (dashController.connectionStatus == true){
+				// log.register({event:"Gateway conectado"});
+				$http.get('/api/log/checkSystemStatus/off').then(function(response) {
+					if (response.data.length > 0)
+						console.log("system check response"+response.data);
+				});
+			}
 		});
 	}
+	dashController.debug = function () {
+		console.log(dashController.new_rule);
+	}
 
-	var promise = $interval(
-		function () {
-			$scope.checkConnection();
-			dashController.getTelemetry();
-			dashController.searchSchedule();
-			if ($location.url() != '/') {
-				$interval.cancel(promise);
-			}
-		}, 4999);
-
-	dashController.turnOn = function(id) {
+	dashController.turnOn = function(id,name) {
 		console.log(id);
 		$http.get('/api/devices/state/update/on/'+id).then(function(response) {
+			log.register({event: "Equipamento "+name+" foi ligado por "+dashController.user.username});
             // console.log(response.data);
 		});
 	}
-	dashController.turnOff = function(id) {
+	dashController.turnOff = function(id,name) {
 		console.log(id);
 		$http.get('/api/devices/state/update/off/'+id).then(function(response) {
+			log.register({event: "Equipamento "+name+" foi desligado por "+dashController.user.username});
             // console.log(response.data);
 		});
 	}
@@ -160,20 +165,56 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 	dashController.searchSchedule = function () { //	DANDO ERRO, AJEITAR DEPOIS
 		$http.get('/api/schedule/search').then(function(response) {
 			dashController.schedule_list = response.data;
-			console.log(response.data);
+			// console.log(response.data);
 		});
 	}
 	dashController.deleteSchedule = function (id) { //	DANDO ERRO, AJEITAR DEPOIS
 		$http.delete('/api/schedule/delete/'+id).then(function(response) {
-			console.log(response.data);
+			// console.log(response.data);
 			dashController.searchSchedule();
 		});
 	}
+
+	dashController.setRule = function() {
+		let data = {
+			devices: dashController.auto_dev_list,
+			params: dashController.new_rule,
+			userInfo: {
+				username: dashController.user.username,
+				phone: dashController.user.phone
+			}
+		}
+		console.log(data);
+		$http.post('/api/setRule/',data).then(function(response) {
+			console.log(response.data);
+		}, function (error){
+			console.log(error);
+			alert("Ocorreu um erro, tente novamente");
+		});
+	}
+
+	dashController.getSystemStats = function () { 
+		$http.get('/api/systemstats').then(function(response) {
+			console.log(response.data);
+			dashController.system_stats = response.data;
+		});
+	}
+	
+	var promise = $interval(
+		function () {
+			log.getlogs().then(function(data){
+				$scope.logs = data;
+			});
+			dashController.getSystemStats();
+			dashController.getTelemetry();
+			dashController.searchSchedule();
+			if ($location.url() != '/') {
+				$interval.cancel(promise);
+			}
+		}, 4999);
 	// dashController.setInputTime = function () {
 	// 	dashController.newJob = {startTime:new Date(),endTime:new Date()};
 	// }
-	dashController.debug = function () {
-		console.log(dashController.auto_dev_list);
-	}
+	
 
 }]);
