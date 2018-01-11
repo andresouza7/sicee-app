@@ -1,6 +1,6 @@
 var myApp = angular.module('myApp');
 
-myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$timeout', '$http', '$location', '$routeParams','log', function($scope,$cookies, $interval, $timeout, $http, $location, $routeParams,log){
+myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$timeout', '$http', '$location', '$routeParams','log','socket', function($scope,$cookies, $interval, $timeout, $http, $location, $routeParams,log,socket){
 	console.log('DashboardController loaded...');
 
 	dashController = this;
@@ -9,26 +9,44 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 		$scope.logs = data;
 	});
 
-	function getLocalDate () { // function for time conversion used in the API
-		let dateUTC = new Date(Date.now()); 
-		let offsetMs = dateUTC.getTimezoneOffset()*60000;
-		let offsetHr = dateUTC.getTimezoneOffset()/60;
-		let localDate = new Date(Date.now()-offsetMs);
-		let year = localDate.getFullYear();
-		let month = localDate.getMonth()+1; //this offset will have to be apllied in each API route when retrieving data.
-		// getMonth()+1 stores months in the range of 1 to 12, which makes it easier to display data in the UI
-		// When getting data from the API, just add the offset to obtain months in the range of 0 to 11, which
-		// is the javascript standard.
-		let day = localDate.getDate();
-		let hour = localDate.getHours()+offsetHr; // prevents the bug of the final 3h of the day being added to the next one
-			if (hour >= 24)
-				hour = hour - 24;
-		return ({
-			timestamp: localDate,
-			year: year,
-			month: month,
-			day: day,
-			hour: hour
+	this.filter_list; // filters devices in the database by user input
+	this.auto_dev_list; // devices from filter_list chosen by user
+
+	this.getLocalDate = function (date) { // function for time conversion used in the API
+		if (date){ // if date was provided
+			
+		} else {
+			let dateUTC = new Date(Date.now()); 
+			let offsetMs = dateUTC.getTimezoneOffset()*60000;
+			let offsetHr = dateUTC.getTimezoneOffset()/60;
+			let localDate = new Date(Date.now()-offsetMs);
+			let year = localDate.getFullYear();
+			let month = localDate.getMonth()+1; //this offset will have to be apllied in each API route when retrieving data.
+			// getMonth()+1 stores months in the range of 1 to 12, which makes it easier to display data in the UI
+			// When getting data from the API, just add the offset to obtain months in the range of 0 to 11, which
+			// is the javascript standard.
+			let day = localDate.getDate();
+			let hour = localDate.getHours()+offsetHr; // prevents the bug of the final 3h of the day being added to the next one
+				if (hour >= 24)
+					hour = hour - 24;
+			return ({
+				timestamp: localDate,
+				year: year,
+				month: month,
+				day: day,
+				hour: hour
+			});
+		}
+	}
+
+	dashController.checkConnection = function () {
+		dashController.connectionStatus;
+		$http.get('/api/checkConnection').then(function(response) {
+			if (response.data.shutdown == false){ // means the system is online
+				dashController.connectionStatus = true;
+			} else if (response.data.shutdown == true){
+				dashController.connectionStatus = false;
+			}
 		});
 	}
 
@@ -38,34 +56,18 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 			dashController.devices = response.data;
 			dashController.devices.forEach(function (device){
 				if (device.telemetry){ 
-					let timestampNow = getLocalDate().timestamp.getTime(); // converts date format to milliseconds
+					let timestampNow = dashController.getLocalDate().timestamp.getTime(); // converts date format to milliseconds
 					// console.log("DATE NOW "+timestampNow);
 					let telemetryTimestamp = new Date(device.telemetry.timestamp).getTime() // converts date format to milliseconds
 					// console.log("TELEMETRY DATE "+telemetryTimestamp);
 					if (timestampNow - telemetryTimestamp  <= 10000) { // if within the sampling period, then it is connected
 						device.connected = true;
-						dashController.connectionStatus = true; // If there is at least one sample within the sampling
-																// period then it means the gateway is online
 					} else { 
-						device.connected = false;
-						dashController.connectionStatus = false;}
+						device.connected = false;}
 				} else {
 					device.connected = false;
 				}
 			});
-			if (dashController.connectionStatus == false){
-				// log.register({event:"Gateway desconectado"});
-				$http.get('/api/log/checkSystemStatus/on').then(function(response) {
-					console.log("system check response"+response.data);
-				});
-			}
-			if (dashController.connectionStatus == true){
-				// log.register({event:"Gateway conectado"});
-				$http.get('/api/log/checkSystemStatus/off').then(function(response) {
-					if (response.data.length > 0)
-						console.log("system check response"+response.data);
-				});
-			}
 		});
 	}
 	dashController.debug = function () {
@@ -195,26 +197,63 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 
 	dashController.getSystemStats = function () { 
 		$http.get('/api/systemstats').then(function(response) {
-			console.log(response.data);
 			dashController.system_stats = response.data;
 		});
 	}
-	
-	var promise = $interval(
-		function () {
-			log.getlogs().then(function(data){
-				$scope.logs = data;
-			});
-			dashController.getSystemStats();
-			dashController.getTelemetry();
-			dashController.searchSchedule();
-			if ($location.url() != '/') {
-				$interval.cancel(promise);
+
+	// ECONOMY RULES
+	dashController.getEconomyRules = function () {
+		$http.get('/api/economy_rule').then(function(response) {
+			dashController.economyRules = response.data;
+			for (index in dashController.economyRules){
+				if (dashController.economyRules[index].length == 0){
+					dashController.economyRules.splice(index,1);
+					index = index - 1;
+				}
 			}
-		}, 4999);
+		});
+	}
+	dashController.deleteEconomyRule = function (id) {
+		$http.delete('/api/economy_rule/'+id).then(function(response) {
+			console.log(response);
+			dashController.getEconomyRules();
+		});
+	}
+	dashController.addEconomyRule = function () {
+		var start;
+		var end;
+		var ts = new Date();
+		if (dashController.newRule.peakPeriod == true) {
+			start = new Date(ts.getFullYear(),ts.getMonth(),ts.getDate(),19); console.log("start "+start);
+			end = new Date(ts.getFullYear(),ts.getMonth(),ts.getDate(),22); console.log("end "+end);
+		} else {
+			start = dashController.newRule.startTime;
+			end = dashController.newRule.endTime;
+		}
+		let data = {
+			deviceId: dashController.auto_dev_list[0]._id, // there will be only one device in the list
+			start: start,
+			end: end
+		};
+		$http.post('/api/economy_rule',data).then(function(response) {
+			console.log(response);
+			dashController.getEconomyRules();
+		});
+	}
+	
+	socket.on('telemetry', function (data) {
+		log.getlogs().then(function(data){
+			$scope.logs = data;
+		});
+		dashController.checkConnection();
+		dashController.getSystemStats();
+		dashController.getTelemetry();
+		dashController.searchSchedule();
+	});
+	socket.on('connectionStatus', function (data) {
+		dashController.checkConnection();
+	});
 	// dashController.setInputTime = function () {
 	// 	dashController.newJob = {startTime:new Date(),endTime:new Date()};
 	// }
-	
-
 }]);

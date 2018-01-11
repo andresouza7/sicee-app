@@ -22,7 +22,7 @@ db.on('error', function(err){
 });
 
 // Init App
-const app = express();
+const app = module.exports = express();
 
 // Load View Engine
 // app.set('views', path.join(__dirname, 'views'));
@@ -87,24 +87,9 @@ app.get('*', function(req, res, next){
   next();
 });
 
-// Socket io Config
+// Socket io Config and export 
 var server = require('http').Server(app);
-var io = require('socket.io')(server);
-
-// Socket io Middleware
-io.on('connection', function(socket){
-  // console.log('a user connected');
-  socket.on('notification', function(msg){
-    console.log('msg: '+msg);
-    io.emit('notification', msg);
-  });
-});
-
-app.post('/', function(req, res){
-  console.log(req.body);
-  io.emit('notification', JSON.stringify(req.body));
-  res.send(200);
-});
+app.io = require('socket.io')(server);
 
 var Agenda = require('agenda');
 var agenda = new Agenda({db: {address: config.database}});

@@ -5,6 +5,12 @@ const router = express.Router();
 let Device = require('../models/device');
 // User Model
 let User = require('../models/user');
+// Telemetry Model
+var Telemetry = require('../models/telemetry');
+// Consumption Model
+var Consumption = require('../models/consumption');
+// Economy rule Model
+var EconomyRule = require('../models/economy_rule');
 
 // Get by id
 router.get('/:id', function(req, res){
@@ -102,7 +108,7 @@ router.delete('/:id', function(req, res){
   // }
 
   let query = {_id:req.params.id}
-
+  let id = req.params.id;
   Device.findById(req.params.id, function(err, device){
     // Configure for example to only allow changes
     // if account has admin privileges
@@ -118,6 +124,9 @@ router.delete('/:id', function(req, res){
       });
     // }
   });
+  Telemetry.remove({deviceId: id},function(err,response){});
+  Consumption.remove({deviceId: id},function(err,response){});
+  EconomyRule.remove({deviceId: id},function(err,response){});
 });
 
 // Access Control

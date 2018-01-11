@@ -5,6 +5,9 @@ let ruleSchema = mongoose.Schema({
   reference:{
     type: String,
   },
+  time: {
+    type: Object
+  },
   operator:{
       type: String
   },

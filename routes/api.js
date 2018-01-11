@@ -5,6 +5,7 @@ const config = require('../config/database');
 const Agenda = require('agenda');
 const request = require('request');
 const http = require('http');
+const app = require('../app');
 
 // Telemetry Model
 var Telemetry = require('../models/telemetry');
@@ -26,6 +27,33 @@ var Log = require('../models/log');
 var RfTelemetry = require('../models/rftelemetry');
 // Log Model
 var SysLog = require('../models/syslog');
+// Economy rule Model
+var EconomyRule = require('../models/economy_rule');
+
+// Socket io Config
+var io = app.io;
+
+app.post('/', function(req, res){
+  console.log(req.body);
+  io.emit('notification', JSON.stringify(req.body));
+  res.send(200);
+});
+router.get('/socket', function(req, res){
+	console.log(req.body);
+	if (req.body) {
+		io.emit('telemetry', "enviando dados");
+		res.sendStatus(200);
+	}
+
+	// listen to data
+	// io.on('connection', function(socket){
+	// 	// console.log('a user connected');
+	// 	socket.on('notification', function(msg){
+	// 	  console.log('msg: '+msg);
+	// 	  io.emit('notification', msg);
+	// 	});
+	// });
+});
 
 // ========================= NOTES ON TIME CONVERSION !!! =============================
 
@@ -41,33 +69,38 @@ var SysLog = require('../models/syslog');
 
 // ========================= NOTES ON TIME CONVERSION !!! =============================
 
-function getLocalDate () {
-	let dateUTC = new Date(Date.now()); 
-	let offsetMs = dateUTC.getTimezoneOffset()*60000;
-	let offsetHr = dateUTC.getTimezoneOffset()/60;
-	let localDate = new Date(Date.now()-offsetMs);
-	let timestamp_day_start = new Date(localDate.getFullYear(),localDate.getMonth(),localDate.getDate(),0);
-	let timestamp_telemetry = new Date(localDate.getTime()-10000); // timestamp in local timezone
-	let year = localDate.getFullYear();
-	let month = localDate.getMonth()+1; //this offset will have to be apllied in each API route when retrieving data.
-	// getMonth()+1 stores months in the range of 1 to 12, which makes it easier to display data in the UI
-	// When getting data from the API, just add the offset to obtain months in the range of 0 to 11, which
-	// is the javascript standard.
-	let day = localDate.getDate();
-	let hour = localDate.getHours()+offsetHr; // prevents the bug of the final 3h of the day being added to the next one
-		if (hour >= 24) {
-			hour = hour - 24;
-			day = day + 1;
-		}
-	return ({
-		timestamp: localDate,
-		timestamp_day_start: timestamp_day_start,
-		timestamp_telemetry: timestamp_telemetry,
-		year: year,
-		month: month,
-		day: day,
-		hour: hour
-	});
+function getLocalDate (inputDate) {
+	var dateUTC = new Date(Date.now()); 
+	var offsetMs = dateUTC.getTimezoneOffset()*60000;
+	var offsetHr = dateUTC.getTimezoneOffset()/60;
+	var localDate = new Date(Date.now()-offsetMs);
+	if (inputDate){
+		inputDate.setTime( inputDate.getTime() - inputDate.getTimezoneOffset()*60*1000 ); 
+		return (inputDate);
+	} else {
+		let timestamp_day_start = new Date(localDate.getFullYear(),localDate.getMonth(),localDate.getDate(),0);
+		let timestamp_telemetry = new Date(localDate.getTime()-10000); // time now minus 10 seconds
+		let year = localDate.getFullYear();
+		let month = localDate.getMonth()+1; //this offset will have to be apllied in each API route when retrieving data.
+		// getMonth()+1 stores months in the range of 1 to 12, which makes it easier to display data in the UI
+		// When getting data from the API, just add the offset to obtain months in the range of 0 to 11, which
+		// is the javascript standard.
+		let day = localDate.getDate();
+		let hour = localDate.getHours()+offsetHr; // prevents the last 3h of the day from being added to the next one
+			if (hour >= 24) {
+				hour = hour - 24;
+				day = day + 1;
+			}
+		return ({
+			timestamp: localDate,
+			timestamp_day_start: timestamp_day_start,
+			timestamp_telemetry: timestamp_telemetry,
+			year: year,
+			month: month,
+			day: day,
+			hour: hour
+		});
+	}
 }
 
 function updateState(devId,state) {
@@ -128,7 +161,216 @@ function smsAlert (username, phone, msg) {
 	.then((message) => console.log(message.sid));
 }
 
+function getNameById (id) {
+	return Device.findOne({_id: id},{name:1}).exec(function (err,response){
+		return response;
+	});
+}
+
+// LOOK FOR SYSTEM SHUTDOWN...
+function log (state) {
+	let syslog = new SysLog();
+	if (state)
+		syslog.shutdown = true;
+	else syslog.shutdown = false;
+	syslog.timestamp = getLocalDate().timestamp;
+	syslog.save(function(err){
+		if (err) console.log(err);
+	});
+}
+setInterval(function(){ 
+	// console.log("looking for status");
+	let startAt = getLocalDate().timestamp_telemetry;
+	// console.log(startAt);
+	Device.findOne({"telemetry.timestamp":{$gt:startAt}}).exec(function(err,response){
+		if (response){ // got telemetry sample, means the system is online
+			SysLog.findOne({}).sort({timestamp:-1}).exec(function(err, res){
+				if (res){
+					if (res.shutdown == true){ // if the last log says it's offline, create a system log saying it's online now
+						log(false);
+						io.emit('connectionStatus', "on");
+						let newlog = new Log(); // also log it to the daily events logs so the user can see
+						newlog.event = "Gateway conectado";
+						newlog.timestamp = new Date(); // user logs use standard UTC time since theyr just for displaying stuff
+						// newlog.save(function (err){
+						// 	if (err) {console.log(err);}
+						// });
+					}
+				}
+			});
+		}
+		if (!response){ // no telemetry means the system is offline
+			console.log("system offline");
+			SysLog.findOne({}).sort({timestamp:-1}).exec(function(err,res){
+				// console.log(res);
+				if (res){
+					if (res.shutdown == false) { // shutdown false means the system was back online and then went down again
+						Device.findOne({"telemetry.timestamp":{$gt:getLocalDate().timestamp_telemetry}}).sort({timestamp:-1}).exec(function(err,response2){
+							if (!response2) {
+								log(true);
+								io.emit('connectionStatus', "off");
+								let newlog = new Log(); // also log it to the daily events logs so the user can see
+								newlog.event = "Gateway desconectado";
+								newlog.timestamp = new Date(); // user logs use standard UTC time since theyr just for displaying stuff
+								// newlog.save(function (err){
+								// 	if (err) {console.log(err);}
+								// });
+							}
+						});
+					}
+				} else {log(true);} // if there are no logs withing 30s, register a new one saying it's offline
+			});
+		}
+	});
+}, 10000);
+
 // =========================== HTTP ROUTES ===========================
+
+// ===== ECONOMY RULE START =====
+router.post('/economy_rule', function(req, res){ // ADD RULE
+	let data = req.body;
+	console.log(data);
+	let rule = new EconomyRule();
+	rule.createdAt = new Date();
+	rule.deviceId = data.deviceId;
+	rule.timeoff_start = new Date(data.start);
+	rule.timeoff_end = new Date(data.end);
+	rule.save(function (err){
+		res.sendStatus(200);
+		if (err) {
+			res.sendStatus(500);
+			console.log(err);
+		}
+	});
+});
+router.delete('/economy_rule/:id', function(req, res){ // DELETE RULE BY ID
+	EconomyRule.findByIdAndRemove(req.params.id, function(err){
+		if (err) console.log(err);
+		res.sendStatus(200);
+	});
+});
+
+router.get('/economy_rule', function(req, res){ // GET ALL RULES FOR EACH DEVICE
+	// let today = getLocalDate().day;
+	// let start = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,0));
+	// let end = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,24));
+	Device.find({},{telemetry:0}).exec(function(err, devices){
+		var promises = [];
+		function processPromise (device) {
+			return new Promise(function (resolve,reject){
+				var datenow = new Date();
+				var ts_query = new Date(datenow.getFullYear(), datenow.getMonth(),1);
+
+				Telemetry.aggregate([{$match:{deviceId: String(device._id), power:{$gt:10},timestamp:{$gte:ts_query}}},{$group:{_id:"$deviceId",mean_power:{$avg:"$power"}}}]).exec(function(err,response){
+					if (err) res.sendStatus(500);
+					else {
+						var device_total_economy = 0;
+						var device_total_projected_economy = 0;
+						var device_mean_power = 0;
+
+						var nestedPromises = [];
+						EconomyRule.find({deviceId: device._id}).exec(function(err, rules){
+							function processNested(rule){
+								return new Promise (function (resolveNested,rejectNested){
+									var createdAt = rule.createdAt.getDate();
+									var start_time = rule.timeoff_start.getTime();
+									var end_time = rule.timeoff_end.getTime();
+									var daily_hours = (end_time - start_time)/(3600*1000);
+									var elapsed_days = new Date().getDate() - createdAt;
+									var endOfMonth = new Date(datenow.getFullYear(), datenow.getMonth(),0).getDate();
+									let mean_power = response.length ? response[0].mean_power : 0; // it is sure that there will only be one object in return
+									device_mean_power = mean_power;
+									let consumption_reduction = elapsed_days*daily_hours*mean_power/1000; // total in hours * mean power of device (kWh)
+									device_total_economy += consumption_reduction;
+									device_total_projected_economy += (endOfMonth-createdAt)*daily_hours*mean_power/1000;
+									let object = {
+										_id: rule._id,
+										deviceName: device.name,
+										mean_power: mean_power,
+										daily_hours: daily_hours,
+										// start_time: rule.timeoff_start.getHours() + rule.timeoff_start.getMinutes()/60,
+										// end_time: rule.timeoff_end.getHours() + rule.timeoff_end.getMinutes()/60,
+										start_time: rule.timeoff_start,
+										end_time: rule.timeoff_end,
+										projected_reduction: (endOfMonth-createdAt)*daily_hours*mean_power/1000,
+										consumption_reduction: consumption_reduction,
+										days_elapsed: new Date().getDate() - createdAt,
+										days_left: endOfMonth - new Date().getDate()
+									};
+									if (!err)
+										return resolveNested(object);
+									else
+										return rejectNested({err : err});
+								});
+							}
+							rules.forEach(function(rule){
+								nestedPromises.push(processNested(rule));
+							});
+							Promise.all(nestedPromises).then(function(nestedData){
+								// console.log(nestedData);
+								if (nestedData) {
+								return resolve({
+									device: device.name,
+									total_economy: device_total_economy,
+									projected_economy: device_total_projected_economy,
+									mean_power: device_mean_power,
+									rules: nestedData});
+								} else {
+									return reject({err: "error"});
+								}
+							});
+						});
+					}
+				});
+			}); // promise inner body
+		} // promise function
+		
+		devices.forEach(function(device){
+			promises.push(processPromise(device));
+		});
+		Promise.all(promises).then(function(data){
+			// console.log(data);
+			res.json(data);
+		});
+	});
+	// res.sendStatus(200);
+});
+
+router.get('/economy_rule/:id', function(req, res){ // Get rule by ID
+	var devId = req.params.id;
+	var promises = [];
+	EconomyRule.findOne({deviceId: devId}, function (err, response) {
+		var createdAt = response.createdAt.getDate();
+		var start_time = response.timeoff_start.getTime(); console.log(start_time);
+		var end_time = response.timeoff_end.getTime(); console.log(end_time);
+		var daily_hours = (end_time - start_time)/(3600*1000);
+		var elapsed_days = new Date().getDate() - createdAt; console.log("elapsed days "+elapsed_days);
+		var datenow = new Date();
+		var endOfMonth = new Date(datenow.getFullYear(), datenow.getMonth(),0).getDate();
+		var ts_query = new Date(datenow.getFullYear(), datenow.getMonth(),1); console.log(ts_query);
+		// This will find the equipment mean power considering the consumption in the current month
+		Telemetry.aggregate([{$match:{deviceId: devId, power:{$gt:1},timestamp:{$gte:ts_query}}},{$group:{_id:"$deviceId",mean_power:{$avg:"$power"}}}]).exec(function(err,response){
+			if (err) res.sendStatus(500);
+			else {
+				console.log(response);
+				let mean_power = response[0].mean_power; // it is sure that there will only be one object in return
+				let consumption_reduction = elapsed_days*daily_hours*mean_power/1000; // total in hours * mean power of device (kWh)
+				getNameById(devId).then(function(device){
+					res.json({
+						deviceName: device.name,
+						mean_power: mean_power,
+						daily_hours: daily_hours,
+						projected_reduction: (endOfMonth-createdAt)*daily_hours*mean_power/1000,
+						consumption_reduction: consumption_reduction,
+						days_elapsed: new Date().getDate() - createdAt,
+						days_left: endOfMonth - new Date().getDate()
+					});
+				});
+			}
+		});
+	});
+});
+// ===== ECONOMY RULE END =====
 
 // RF TELEMETRY get
 router.get('/rftelemetry', function(req, res){
@@ -142,8 +384,7 @@ router.get('/rftelemetry', function(req, res){
 	// res.send(200);
   });
 
-
-  //change get to PUT
+// ===== UPDATE DEVICE STATE START =====
 // SET DEVICE STATE ON
 router.get('/devices/state/update/on/:_id', function(req, res){
 	res.sendStatus(200);
@@ -167,6 +408,7 @@ router.get('/devices/state/update/off/:_id', function(req, res){
 		}
 	});
 });
+// ===== UPDATE DEVICE STATE END =====
 
 // GET DEVICES
 router.get('/devices', function(req, res){
@@ -199,17 +441,6 @@ router.post('/smsAlert',function(req, res){
 	res.send(200);
 });
 
-// CHECK SYSTEM CONNECTION
-router.get('/checkConnection',function(req,res){
-	let startAt = new Date(getLocalDate().timestamp-10000);
-	// console.log("start = "+startAt);
-	Telemetry.findOne({timestamp:{$gt: startAt}}).exec(function (err, telemetry) {
-		// console.log(telemetry);
-		if (err)
-			console.log(err);
-		res.json(telemetry);
-	});
-});
 // GET LATEST TELEMETRY
 router.get('/telemetry',function(req,res){
 	let startAt = new Date(getLocalDate().timestamp-10000);
@@ -222,12 +453,13 @@ router.get('/telemetry',function(req,res){
 	});
 });
 
+// ===== SCHEDULE TASKS START =====
 router.get('/schedule/search/', function (req,res){
-	Automation.find({}).sort({nextRunAt:-1}).limit(10).exec(function(err,list) {
-		res.send(list);
+	Automation.find({}).sort({nextRunAt:-1}).limit(10).exec(function(err,list) { // Get all schedules
+		res.json(list);
 	}); 
 });
-router.delete('/schedule/delete/:_id', function (req,res){
+router.delete('/schedule/delete/:_id', function (req,res){ // Delete schedule by id
 	Automation.remove({_id:req.params._id}, function(err){
         if(err){
           console.log(err);
@@ -236,8 +468,7 @@ router.delete('/schedule/delete/:_id', function (req,res){
       });
 });
 
-// SCHEDULE EVENTS
-router.post('/schedule/',function(req,res){
+router.post('/schedule/',function(req,res){ // Add new schedule
 	let data = req.body;
 	console.log(data);
 	let startTime = new Date(data.action.on.time);
@@ -314,8 +545,9 @@ router.post('/schedule/',function(req,res){
 	// });
 
 	// agenda.processEvery('10 seconds');
-	res.send(200);
+	res.sendStatus(200);
 });
+// ===== SCHEDULE TASKS END =====
 
 // SET NEW RULE
 router.post('/setRule/',function(req,res){
@@ -442,6 +674,7 @@ router.get('/agenda/list',function(req,res){
 	res.send(200);
 });
 
+// ===== STATISTICS START =====
 // GET TOTAL INSTANTANEOUS POWER
 router.get('/totalpower',function(req,res){	
 	TotalPower.findOne({}).sort({timestamp:-1}).exec(function(err, totalpower){
@@ -497,36 +730,48 @@ router.get('/deviceconsumption', function(req, res){
 // GET HOURS OF USAGE PER DAY
 router.get('/usagePerDay', function(req, res){
 	let today = getLocalDate().day;
-	Telemetry.aggregate([{$match:{day:today,power:{$gt:0}}},{$group:{_id:"$deviceId",count:{$sum:1}}}]).exec(function(err, consumption){
+	let start = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,0));
+	let end = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,24)); 
+	Telemetry.aggregate([{$match:{day:today,timestamp:{$gte:start,$lt:end},power:{$gt:0}}},{$group:{_id:"$deviceId",count:{$sum:1}}}]).exec(function(err, consumption){
 		if(err){
 		console.log(err);
 		} else {
-			Device.find({},{name:1}).exec(function (err,devices){
-				var list = [];
-				devices.forEach(function(device){
-					consumption.forEach(function (item){
-						if (String(item._id) == String(device._id)){
-							let object = {
-							"id": item._id,
-							"usage": item.count*10/3600,
-							"name": device.name
-							} 
-							list.push(object);
-						}
+			var promises = [];
+			consumption.forEach(function(item, index){
+				promises.push(matchId(item));
+			});
+			Promise.all(promises).then(function(data){ // once all promises are done, send the list
+				res.json(data);
+			});
+			function matchId(item){
+				return new Promise(function(resolve,reject){ // each async search returns a new promise
+					getNameById(item._id).then(function(device){
+						let object = {
+						"id": item._id, // or device._id
+						"usage": item.count*10/3600, 
+						"name": device.name
+						} 
+						return resolve(object);
+					}, function(error){
+						return reject(error);
 					});
 				});
-				console.log(list);
-				res.json(list);
-			});
-		// res.json(consumption);
+			}
 		}
 	});
 });
 
 // GET TOTAL CONSUMPTION WITHIN TIME RANGE
 router.get('/consumptionPerDay', function(req, res){
-	var startAt = new Date(getLocalDate().year,getLocalDate().month-1,1); // adjust 1-12 to 0-11 month scale
-	var endAt = new Date(getLocalDate().year,getLocalDate().month,0); // same as above	
+	// console.log(req.body);
+	var startAt, endAt;
+	if (req.query.year && req.query.month && req.query.month > 0){
+		startAt = new Date(req.query.year,req.query.month-1,1); // adjust 1-12 to 0-11 month scale
+		endAt = new Date(req.query.year,req.query.month,0); // same as above
+	} else {
+		startAt = new Date(getLocalDate().year,getLocalDate().month-1,1); // adjust 1-12 to 0-11 month scale
+		endAt = new Date(getLocalDate().year,getLocalDate().month,0); // same as above
+	}
 	// query option using $dayOfMonth: _id:{$dayOfMonth:"$timestamp"}
 	Consumption.aggregate([{$match:{timestamp:{$gte:startAt,$lte:endAt}}},{$group:{_id:"$day",total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
 		if(err){
@@ -537,38 +782,122 @@ router.get('/consumptionPerDay', function(req, res){
 	});
 });
 
-// GET HOURLY CONSUMPTION FOR SPECIFIC DAY
-router.get('/consumptionPerHour', function(req, res){
-	let today = getLocalDate().day;
-	console.log("hour "+getLocalDate().hour);
-	console.log("day "+today);
+// GET HOURLY CONSUMPTION FOR MONTH
+router.get('/consumptionPerHourMonthly', function(req, res){
+	console.log(req.query);
+	var start,end;
+	if (req.query.year && req.query.month && req.query.month > 0){
+		start = new Date(req.query.year,req.query.month-1,1); // adjust 1-12 to 0-11 month scale
+		end = new Date(req.query.year,req.query.month,0); // same as above
+	} else {
+		start = new Date(getLocalDate().year,getLocalDate().month-1,1); console.log("start "+start);
+		end = new Date(getLocalDate().year,getLocalDate().month,0); console.log("end "+end);
+	}
 	// if (typeof req.query.startAt != 'undefined' || typeof req.query.endAt != 'undefined') {
-	Consumption.aggregate([{$match:{day:today}},{$group:{_id:"$hour",total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
+	Consumption.aggregate([{$match:{timestamp:{$gte:start,$lte:end}}},{$group:{_id:"$hour",total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
 		if(err){
 		console.log(err);
 		} else {
-			let consumption_array = [];
-			consumption.forEach(function(hour){
-				consumption_array.push(hour.total);
-			});
-			let sum = consumption_array.reduce((previous, current) => current += previous);
-			var avg = sum / consumption_array.length;
-			let hour_profile = [];
-			// consumption.forEach(function(hour){
-			// 	let deviation = hour.total - avg;
-			// 	if (deviation > 0) {
-			// 		let datapoint = {
-			// 			hour: hour._id,
-			// 			deviation: hour.total
-			// 		}
-			// 		hour_profile.push(datapoint);
-			// 	}
-			// });
-			console.log(avg);
-			const excess = consumption.filter(datapoint => datapoint.total - avg > 0); // datapoint.total - avg = deviation from mean
-			res.json({
-				consumption: consumption,
-				excess: excess});
+			if (consumption.length > 0) {
+				let consumption_standard = [];
+				let consumption_peak = [];
+				let consumption_intermediate = [];
+				let consumption_offpeak = [];
+				consumption.forEach(function(hour){
+					consumption_standard.push(hour.total);
+					if (hour._id < 18 || hour._id >= 23) { // peak Period
+						consumption_offpeak.push(hour.total);
+						// console.log("offpeak hour: "+hour._id);
+					}
+					if ((hour._id >= 18 && hour._id < 19) || (hour._id >= 22 && hour._id < 23)) { // intermediate Period
+						consumption_intermediate.push(hour.total);
+						// console.log("intermediate hour: "+hour._id);
+					}
+					if (hour._id >= 19 && hour._id < 22) { // offpeak Period
+						consumption_peak.push(hour.total);
+						// console.log("peak hour: "+hour._id);
+					}
+				});
+				let standard = consumption_standard.reduce((previous, current) => current += previous)*0.4/1000;
+				let peak = consumption_peak.reduce((previous, current) => current += previous)*0.4*1.82/1000;
+				let intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*0.4*1.15/1000;
+				let offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*0.4*0.78/1000;
+				let standard_best = (peak+intermediate+offpeak) < standard ? false : true;
+				
+				var promises = [];
+				function promise(device) {
+					return new Promise(function (resolve,reject){
+						Consumption.aggregate([{$match:{deviceId: String(device._id),timestamp:{$gte:start,$lte:end}}},{$group:{_id:"$hour",total:{$sum:"$consumption"}}}]).exec(function(err, device_consumption){
+							let data = {
+								device: device.name,
+								consumption: device_consumption
+							};
+							return resolve(data);
+						});
+					});
+				}
+				Device.find({}).exec(function(err,devices){
+					devices.forEach(function(device){
+						promises.push(promise(device));
+					});
+					Promise.all(promises).then(function(data){
+						res.json({
+							general: consumption,
+							devices: data,
+							bill_stats:{
+								standard: standard,
+								white: peak+intermediate+offpeak,
+								peak: peak,
+								intermediate: intermediate,
+								offpeak: offpeak,
+								standard_best: standard_best
+							}
+						});
+					});
+				});
+			}
+		}
+	});
+});
+
+// GET HOURLY CONSUMPTION FOR SPECIFIC DAY
+router.get('/consumptionPerHour', function(req, res){ // retrieve by timezone working
+	let today = getLocalDate().day; 
+	// console.log("day "+today);
+	let start = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,0));
+	// console.log("start "+start.toISOString());
+	let end = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,24)); 
+	// console.log("end "+end.toISOString());
+	// if (typeof req.query.startAt != 'undefined' || typeof req.query.endAt != 'undefined') {
+	Consumption.aggregate([{$match:{timestamp:{$gte:start,$lt:end}}},{$group:{_id:"$hour",total:{$sum:"$consumption"}}}]).exec(function(err, consumption){
+		console.log(consumption);
+		if(err){
+		console.log(err);
+		} else {
+			if (consumption.length > 0) {
+				let consumption_array = [];
+				consumption.forEach(function(hour){
+					consumption_array.push(hour.total);
+				});
+				let sum = consumption_array.reduce((previous, current) => current += previous);
+				var avg = sum / consumption_array.length;
+				let hour_profile = [];
+				// consumption.forEach(function(hour){
+				// 	let deviation = hour.total - avg;
+				// 	if (deviation > 0) {
+				// 		let datapoint = {
+				// 			hour: hour._id,
+				// 			deviation: hour.total
+				// 		}
+				// 		hour_profile.push(datapoint);
+				// 	}
+				// });
+				// console.log(avg);
+				const excess = consumption.filter(datapoint => datapoint.total - avg > 0); // datapoint.total - avg = deviation from mean
+				res.json({
+					consumption: consumption,
+					excess: excess});
+			}
 		}
 	});
 });
@@ -582,9 +911,9 @@ router.get('/consumptionPerDevice', function(req, res){
 			res.sendStatus(500);
 			console.log(err);
 		} else {
-			console.log(consumption);
+			// console.log(consumption);
 			Device.find({},{name:1}).exec(function (err,devices){
-				console.log(devices);
+				// console.log(devices);
 				var list = [];
 				devices.forEach(function(device){
 					// console.log(device.name);
@@ -600,10 +929,54 @@ router.get('/consumptionPerDevice', function(req, res){
 						}
 					});
 				});
-				console.log(list);
+				// console.log(list);
 				res.json(list);
 			});
 		}
+	});
+});
+// ===== STATISTICS END =====
+
+// YEARS AND MONTHS FOR SELECT BOX
+router.get('/getRange', function(req, res){ // Lets the user know the range of telemetry available
+	Consumption.aggregate([{$group:{_id:{$year:"$timestamp"},total:{$sum:0}}}]).exec(function(err, years_list){
+		var promises = [];
+		function promise (year) {
+			return new Promise(function (resolve,reject){
+				var start = new Date(year._id,0,1); 
+				// console.log("start "+start);
+				var end = new Date(year._id,12,0);
+				// console.log("end "+end); // last month = 11, last day = 0 
+				Consumption.aggregate([{$match:{timestamp:{$gte: start, $lte: end}}},{$group:{_id:{$month:"$timestamp"},total:{$sum:1}}}]).exec(function(err, months_list){
+					var months = [];
+					months_list.forEach(function(item){
+						var days_list = [];
+						for (var day=1;day<=end.getDate();day++){
+							days_list.push({
+								day: day
+							});
+						}
+						months.push({
+							month: item._id,
+							days: days_list
+						});
+					});
+					return resolve ({
+						year: year._id,
+						months: months,
+					});
+				});
+			}, function (error){
+				return reject (error);
+			});
+		}
+		years_list.forEach(function(year){
+			promises.push(promise(year));
+		});
+		Promise.all(promises).then(function(data){
+			// console.log(data);
+			res.json(data);
+		});
 	});
 });
 
@@ -619,6 +992,91 @@ router.get('/notifications', function(req, res) {
 		} else {
 			res.json(notifications);
 		}
+	});
+});
+
+router.get('/rules', function(req,res){
+	Rule.find({time:{$exists:true}}).exec(function (err, response){
+		res.send(response);
+		console.log(response);
+	});
+});
+
+router.delete('/hardreset',function(req, res){ // RESET ALL DATA
+	Telemetry.deleteMany({},function(err,response){});
+	Notification.deleteMany({},function(err,response){});
+	TotalPower.deleteMany({},function(err,response){});
+	Automation.deleteMany({},function(err,response){});
+	Rule.deleteMany({},function(err,response){});
+	Device.deleteMany({},function(err,response){});
+	Log.deleteMany({},function(err,response){});
+	RfTelemetry.deleteMany({},function(err,response){});
+	Consumption.deleteMany({},function(err,response){});
+	SysLog.deleteMany({},function(err,response){});
+	res.send("The system has been cleaned!");
+});
+
+// CHECK SYSTEM CONNECTION
+router.get('/checkConnection', function(req, res){
+	SysLog.findOne({}).sort({timestamp:-1}).exec(function(err, log){
+		if (log){
+			res.json(log);
+		}
+	});
+});
+
+// LOGS MANAGEMENT
+router.post('/log',function(req,res){
+	let newlog = new Log();
+	newlog.event = req.body.event;
+	newlog.timestamp = new Date();
+	newlog.save(function(err){
+		if (err) log(err);
+	})
+	console.log(req.body);
+	res.sendStatus(200);
+});
+router.get('/log',function(req,res){
+	Log.find({timestamp:{$gte:getLocalDate().timestamp_day_start}},function(err, response){
+		res.send(response);
+		if (err){console.log(err);}
+	});
+});
+
+router.get('/systemstats',function(req,res){
+	let today = getLocalDate().day;
+	let start = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,0));
+	let end = getLocalDate(new Date(getLocalDate().year,getLocalDate().month-1,today,24));
+	Telemetry.aggregate([{$match:{day:today,timestamp:{$gte:start,$lt:end}}},{$group:{_id:"$deviceId",count:{$sum:1}}}]).exec(function (err, device_stats){
+		SysLog.find({shutdown:true,timestamp:{$gte:getLocalDate().timestamp_day_start}}).count().exec(function (err, system_logs){
+			let startAt = new Date(getLocalDate().year, getLocalDate().month-1, getLocalDate().day,-3); // starts at 00:00 => 2018-01-18T00:00:00.000Z
+			// console.log(getLocalDate().timestamp.getTime() - startAt.getTime());
+			let samples_cap = (((getLocalDate().timestamp.getTime() - startAt.getTime()) /1000)/10).toFixed(); // number of samples that were supposed to be colected so far considering a 10s sampling period
+			let most_samples = 0; // some devices may have less samples than others due to RF packet loss, so
+			// in order to know the total gateway online time its necessary to know which one got the mots samples
+			device_stats.forEach(function(device, index){
+				device.lost = samples_cap - device.count;
+				if (device.count > most_samples)
+					most_samples = device.count;
+			});
+			let online_time = (most_samples * 10 / 3600);
+			Device.find({},{name:1}).exec(function (err,devices){
+				var list = [];
+				devices.forEach(function(device){
+					device_stats.forEach(function (item){
+						if (String(item._id) == String(device._id)){
+							item.name = device.name;
+						}
+					});
+				});
+				let system_stats = {
+					stats: device_stats,
+					shutdowns: system_logs,
+					online_time: online_time
+				}
+				res.send(system_stats);
+			});
+		});
 	});
 });
 
@@ -695,7 +1153,7 @@ router.post('/telemetry', function(req, res) {
 						//data is received from the gateway in an array containing 13-digit strings: 
 						//pRvvv.vII.II == pipe(1)+relay_status(2)+voltage(5)+current(5)
 						let relayState = parseInt(item.substring(1, 2));
-						let vrms = parseFloat(item.substring(2,7));
+						let vrms = parseFloat(item.substring(2,7))*2;
 						let irms = parseFloat(item.substring(7,12));
 						let power = vrms*irms;
 						// console.log(devId);
@@ -717,7 +1175,7 @@ router.post('/telemetry', function(req, res) {
 						telemetry.month = getLocalDate().month;
 						telemetry.day = getLocalDate().day;
 						telemetry.hour = getLocalDate().hour;
-						console.log("telemetry received at "+telemetry.timestamp);
+						console.log("telemetry for "+telemetry.deviceName+" at "+telemetry.timestamp);
 						// console.log("month: "+telemetry.month);
 						// console.log("day: "+telemetry.day);
 						// console.log("hour: "+telemetry.hour);
@@ -741,6 +1199,8 @@ router.post('/telemetry', function(req, res) {
 						// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
 						// This keeps tasks in memory. So if a command fails to execute,
 						// the server will keep sending it until it does.
+
+						// it takes 20 to 30s for the feedback on the relay state change to arrive
 						if (relayState==1) {
 							Device.update({pipe: pipe}, {current_state:"on"}, function(err){
 								if(err){
@@ -783,6 +1243,43 @@ router.post('/telemetry', function(req, res) {
 							});
 						});
 
+						Rule.find({"action.off_checked":true,"time.start_time":{$lte:new Date()},"time.end_time":{$gte:new Date()}},function(err, rules) {
+							// console.log(new Date());
+							rules.forEach(function(rule){
+								rule.devices.forEach(function(device, index){
+									if (device._id == telemetry.deviceId) {
+										if (relayState == 1) { //relayState = 1 is the board feedback saying its on
+											updateState(device._id,"off");
+											// console.log("equipamento proibido de funcionar este horario");
+											let newlog = new Log();
+											newlog.event = "usuario "+rule.userInfo.username+" tentou ligar equipamento "+device.name;
+											newlog.timestamp = new Date();
+											newlog.save(function(err, response){
+												if (err) console.log(err);
+											});
+										}
+									}
+								});
+							});
+						});
+
+						// LOOKS FOR ECONOMY RULES DEFINED FOR EACH DEVICE
+						EconomyRule.find({deviceId: devId}).exec(function (err, rules){
+							if (rules) {
+								rules.forEach(function(rule){
+									var timenow = new Date().getHours() + new Date().getMinutes()/60;
+									var start = rule.timeoff_start.getHours() + rule.timeoff_start.getMinutes()/60;
+									var end = rule.timeoff_end.getHours() + rule.timeoff_end.getMinutes()/60;
+									// console.log("timenow"+timenow);
+									// console.log("start"+start);
+									// console.log("end"+end);
+									if (timenow >= start && timenow < end && relayState == 1) {
+										updateState(rule.deviceId,"off");
+										console.log("device cannot be on at this time");
+									}
+								});
+							}
+						});
 						
 						// DETECT IF VOLTAGE IS 127V OR 220V
 						const voltage_max_threshold_127 = 135.0;
@@ -904,142 +1401,8 @@ router.post('/telemetry', function(req, res) {
 	// as reference to identify where the response starts and ends, if doesnt find these symbols
 	// it wont close the current connection and so the next request will fail and telemetry
 	// data will be lost.
+	io.emit('telemetry', "telemetry received");
 	res.json([]);
-});
-
-// LOGS MANAGEMENT
-router.post('/log',function(req,res){
-	let newlog = new Log();
-	newlog.event = req.body.event;
-	newlog.timestamp = new Date();
-	newlog.save(function(err){
-		if (err) log(err);
-	})
-	console.log(req.body);
-	res.sendStatus(200);
-});
-router.get('/log',function(req,res){
-	Log.find({timestamp:{$gte:getLocalDate().timestamp_day_start}},function(err, response){
-		res.send(response);
-		if (err){console.log(err);}
-	});
-});
-router.get('/log/checkSystemStatus/off',function(req,res){
-	let timenow = new Date();
-	Log.findOne({event:"Gateway desconectado",timestamp:{$lte:timenow}}).sort({timestamp:-1}).exec(function(err, response){
-		res.send(response);
-		if (err){console.log(err);}
-	});
-});
-router.get('/log/checkSystemStatus/on',function(req,res){
-	let timenow = new Date();
-	Log.findOne({event:"Gateway conectado",timestamp:{$lte:timenow}}).sort({timestamp:-1}).exec(function(err, response){
-		res.send(response);
-		if (err){console.log(err);}
-	});
-});
-
-router.get('/systemstats',function(req,res){
-	Telemetry.aggregate([{$match:{day:getLocalDate().day}},{$group:{_id:"$deviceId",count:{$sum:1}}}]).exec(function (err, device_stats){
-		SysLog.find({shutdown:true,timestamp:{$gte:getLocalDate().timestamp_day_start}}).count().exec(function (err, system_logs){
-			let startAt = new Date(getLocalDate().year, getLocalDate().month-1, getLocalDate().day,-3); // starts at 00:00 => 2018-01-18T00:00:00.000Z
-			// console.log(getLocalDate().timestamp.getTime() - startAt.getTime());
-			let samples_cap = (((getLocalDate().timestamp.getTime() - startAt.getTime()) /1000)/10).toFixed(); // number of samples that were supposed to be colected so far considering a 10s sampling period
-			let most_samples = 0; // some devices may have less samples than others due to RF packet loss, so
-			// in order to know the total gateway online time its necessary to know which one got the mots samples
-			device_stats.forEach(function(device, index){
-				device.lost = samples_cap - device.count;
-				if (device.count > most_samples)
-					most_samples = device.count;
-			});
-			let online_time = (most_samples * 10 / 3600);
-			Device.find({},{name:1}).exec(function (err,devices){
-				var list = [];
-				devices.forEach(function(device){
-					device_stats.forEach(function (item){
-						if (String(item._id) == String(device._id)){
-							item.name = device.name;
-						}
-					});
-				});
-				let system_stats = {
-					stats: device_stats,
-					shutdowns: system_logs,
-					online_time: online_time
-				}
-				res.send(system_stats);
-			});
-		});
-	});
-});
-
-// LOOK FOR SYSTEM SHUTDOWN...
-function log (state) {
-	let syslog = new SysLog();
-	if (state)
-		syslog.shutdown = true;
-	else syslog.shutdown = false;
-	syslog.timestamp = getLocalDate().timestamp;
-	syslog.save(function(err){
-		if (err) console.log(err);
-	});
-}
-setInterval(function(){ 
-	// console.log("looking for status");
-	let startAt = getLocalDate().timestamp_telemetry;
-	// console.log(startAt);
-	Device.findOne({"telemetry.timestamp":{$gt:startAt}}).exec(function(err,response){
-		if (response){ // got telemetry sample, means the system is online
-			SysLog.findOne({}).sort({timestamp:-1}).exec(function(err, res){
-				if (res){
-					if (res.shutdown == true){ // if the last log says it's offline, create a system log saying it's online now
-						log(false);
-						let newlog = new Log(); // also log it to the daily events logs so the user can see
-						newlog.event = "Gateway conectado";
-						newlog.timestamp = new Date(); // user logs use standard UTC time since theyr just for displaying stuff
-						newlog.save(function (err){
-							if (err) {console.log(err);}
-						});
-					}
-				}
-			});
-		}
-		if (!response){ // no telemetry means the system is offline
-			console.log("system offline");
-			SysLog.findOne({}).sort({timestamp:-1}).exec(function(err,res){
-				// console.log(res);
-				if (res){
-					if (res.shutdown == false) { // shutdown false means the system was back online and then went down again
-						Device.findOne({"telemetry.timestamp":{$gt:getLocalDate().timestamp_telemetry}}).sort({timestamp:-1}).exec(function(err,response2){
-							if (!response2) {
-								log(true);
-								let newlog = new Log(); // also log it to the daily events logs so the user can see
-								newlog.event = "Gateway desconectado";
-								newlog.timestamp = new Date(); // user logs use standard UTC time since theyr just for displaying stuff
-								newlog.save(function (err){
-									if (err) {console.log(err);}
-								});
-							}
-						});
-					}
-				} else {log(true);} // if there are no logs withing 30s, register a new one saying it's offline
-			});
-		}
-	});
-}, 20000);
-
-router.delete('/hardreset',function(req, res){
-	Telemetry.deleteMany({},function(err,response){});
-	Notification.deleteMany({},function(err,response){});
-	TotalPower.deleteMany({},function(err,response){});
-	Automation.deleteMany({},function(err,response){});
-	Rule.deleteMany({},function(err,response){});
-	Device.deleteMany({},function(err,response){});
-	Log.deleteMany({},function(err,response){});
-	RfTelemetry.deleteMany({},function(err,response){});
-	Consumption.deleteMany({},function(err,response){});
-	SysLog.deleteMany({},function(err,response){});
-	res.send("The system has been cleaned!");
 });
 
 module.exports = router;

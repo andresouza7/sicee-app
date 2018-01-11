@@ -4,10 +4,9 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0" />
-	<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css">
+  <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css">
   <link rel="stylesheet" href="css/style.css">
-  <link href="https://fonts.googleapis.com/css?family=Play|Quicksand|Varela+Round" rel="stylesheet">
-  <link href="//cdn.rawgit.com/indrimuska/angular-moment-picker/master/dist/angular-moment-picker.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/angular-moment-picker.min.css">
 </head>
 <body>
 	<nav class="navbar navbar-default" ng-controller="UsersController as usersController" ng-init="usersController.getCookieData()">
@@ -95,10 +94,15 @@
     		</div>
     	</div>
      </div>
-
      
      <footer>
       <div class="container">
+        <hr>
+        <p><sup>*</sup> Os valores monetários apresentados referem-se exclusivamente ao consumo dos equipamentos monitorados,
+        nos intervalos de tempo indicados, não considerando tributos ou impostos de qualquer natureza.</p>
+        <p><sup>**</sup> As medições apresentadas tem por objetivo salientar perfis de consumo excessivo de energia e
+        promover a adoção do consumo consciente, não tendo validade para contestação da tarifação da concessionária de energia.</p>
+        <hr>
       <div class="panel">
         <div class="row">
           <!-- <div class="col col-lg-6">
@@ -126,15 +130,28 @@
   <script src="/bower_components/angular/angular-cookies.js"></script>
 	<script src="/bower_components/angular-route/angular-route.js"></script>
   <script src="/bower_components/bootstrap/dist/js/bootstrap.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment-with-locales.js"></script>
-  <script src="//cdn.rawgit.com/indrimuska/angular-moment-picker/master/dist/angular-moment-picker.min.js"></script>
-  
+  <!-- local js files manually installed -->
+  <script src="/js/moment-with-locales.min.js"></script> 
+  <script src="/js/angular-moment-picker.min.js"></script>
+  <script src="/js/Chart.bundle.min.js"></script>
+  <!-- local js files -->
 
   <script src="/app.js"></script>
   <script src="/controllers/users.js"></script>
   <script src="/controllers/dashboard.js"></script>
   <script src="/controllers/devices.js"></script>
   <script src="/controllers/statistics.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.bundle.js"></script>
+  <script src="/socket.io/socket.io.js"></script> <!-- via npm -->
+  <script>
+    // $(function () {
+    //   var socket = io();
+    //   $('.test').on('click', function(e){
+    //     socket.emit('chat message', 'testing...');
+    //   });
+    //   socket.on('telemetry', function(msg){
+    //     alert('New data from server:<br>'+msg);
+    //   });
+    // });
+  </script>
 </body>
 </html>

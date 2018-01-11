@@ -3,7 +3,7 @@ let mongoose = require('mongoose');
 // Article Schema
 let telemetrySchema = mongoose.Schema({
   deviceId:{
-    type: mongoose.Schema.ObjectId,
+    type: String, //mongoose.Schema.ObjectId
     required: true
   },
   deviceName:{

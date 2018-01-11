@@ -4,9 +4,35 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 	console.log('StatisticsController loaded...');
 
 	statsController = this;
+	$scope.selectedOptionYear={year:new Date().getFullYear()};
+	$scope.selectedOptionMonth={month:new Date().getMonth()};
+
+	var chartColors = {
+		blue: 'rgb(54, 162, 235)',
+		red: 'rgb(210, 35, 60)',
+		green: 'rgb(75, 192, 192)',
+		yellow: 'rgb(255, 205, 86)',
+		orange: 'rgb(255, 159, 64)',
+		grey: 'rgb(231,233,237)',
+		purple: 'rgb(153, 102, 255)',
+	};
+
+	statsController.getRange = function () { // Runs once when page loads
+		$http.get('/api/getRange').then(function(response) {
+			statsController.range = response.data;
+			$scope.selectedOptionYear = statsController.range[0];
+			$scope.selectedOptionMonth = statsController.range[0].months[0];
+		});
+	}
 
 	statsController.getConsumptionPerDay = function(){
-		$http.get('/api/consumptionPerDay').then(function(response) {
+		if (!$scope.selectedOptionMonth)
+			$scope.selectedOptionMonth = $scope.selectedOptionYear.months[0];
+		var period = {
+			year: $scope.selectedOptionYear.year,
+			month: $scope.selectedOptionMonth.month
+		};
+		$http.get('/api/consumptionPerDay?year='+period.year+'&month='+period.month).then(function(response) {
 			statsController.consumption = response.data;
 			let datenow = new Date(Date.now());
 			var daysOfMonth = new Date(datenow.getFullYear(),datenow.getMonth()+1,0);
@@ -49,7 +75,7 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 				labels: datapoints.y,
 				datasets: [{
 					type: 'bar',
-					label: 'kWh por dia',
+					label: 'Wh por dia',
 					backgroundColor: bgcolor,
 					borderWidth: 2,
 					fill: false,
@@ -65,8 +91,10 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 				}]
 			};
 
+			if (statsController.dailyConsumptionChart) // Prevents double chart bug
+				statsController.dailyConsumptionChart.destroy();
 			var ctx = document.getElementById("dailyConsumptionChart");
-			var dailyConsumptionChart = new Chart(ctx, {
+			statsController.dailyConsumptionChart = new Chart(ctx, {
 				type: 'bar',
 				data: chartData,
 				options: {
@@ -84,6 +112,16 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 					}
 				}
 			});
+			document.getElementById("dailyConsumptionChart").onclick = function (evt) {
+				var activePoints = dailyConsumptionChart.getElementsAtEventForMode(evt, 'point', dailyConsumptionChart.options);
+				var firstPoint = activePoints[0];
+				var label = dailyConsumptionChart.data.labels[firstPoint._index];
+				var value = dailyConsumptionChart.data.datasets[firstPoint._datasetIndex].data[firstPoint._index];
+				// alert(label + ": " + value);
+				$('#dailyInsight').modal('show');
+				statsController.getConsumptionPerHour("dailyInsightChart");
+			};
+
 		});
 	}
 
@@ -140,6 +178,113 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 		});
 	}
 
+	statsController.getConsumptionPerHourMonthly = function(){
+		if (!$scope.selectedOptionMonth)
+			$scope.selectedOptionMonth = $scope.selectedOptionYear.months[0];
+		var period = {
+			year: $scope.selectedOptionYear.year,
+			month: $scope.selectedOptionMonth.month
+		};
+		$http.get('/api/consumptionPerHourMonthly?year='+period.year+'&month='+period.month).then(function(response) {
+			var apiDataPointsGeneral = response.data.general;
+			var apiDataPointsDevices = response.data.devices;
+			statsController.bill_stats = response.data.bill_stats;
+			// statsController.excess_consumption = response.data.excess;
+			
+			var generalXPoints = [];
+			var datasets = [];
+			var bgcolorGeneralPoints = [];
+			var labels = [];
+			for (let hour=0; hour<=23; hour++){
+				let bin = hour+1;
+				labels.push(hour+"-"+bin+"h");
+				// Fill in series for total consumption
+				let generalPointExists = false;
+				apiDataPointsGeneral.forEach(function (item, index) {
+					if (item._id == hour) { //item._id = hour of day
+						generalPointExists = true;
+						generalXPoints.push(item.total.toFixed(2));
+						bgcolorGeneralPoints.push(Object.values(chartColors)[0]);
+						
+						// let highlight = false;
+						// statsController.excess_consumption.forEach(function (excess_item){
+						// 	if (excess_item._id == item._id)
+						// 		highlight = true;
+						// });
+						// if (highlight) bgcolor.push('red');
+						// else bgcolor.push('rgba(75, 192, 230, 0.8)');
+					}
+				});
+				if (!generalPointExists) {
+					generalXPoints.push(0);
+					bgcolorGeneralPoints.push(Object.values(chartColors)[0]);
+				}
+			}
+
+			// Fill in individual series for each device
+			apiDataPointsDevices.forEach(function(device, index){
+				var deviceXPoints = [];
+				for (let hour=0; hour<=23; hour++){
+					let devicePointExists = false;
+					device.consumption.forEach(function(item){
+						if (item._id == hour) { //item._id = hour of day
+							devicePointExists = true;
+							deviceXPoints.push(item.total.toFixed(2));
+						}
+					});
+					if (!devicePointExists) {
+						deviceXPoints.push(0);
+					}
+				}
+				// Push individual device series
+				datasets.push({
+					type: 'line',
+					label: device.device, //device name as per the api
+					borderColor: Object.values(chartColors)[index+1],
+					borderWidth: 2,
+					data: deviceXPoints,
+					fill: false
+				});
+			});
+			// Push ALL_Devices series
+			datasets.push({
+				type: 'bar',
+				label: 'Todos',
+				backgroundColor: bgcolorGeneralPoints,
+				borderWidth: 2,
+				data: generalXPoints
+			});
+
+			var chartData = {
+				labels: labels,
+				datasets: datasets
+			}
+
+			if (statsController.hourlyConsumptionChartForMonth) // Prevents double chart bug
+				statsController.hourlyConsumptionChartForMonth.destroy();
+			var ctx = document.getElementById("dailyConsumptionChart");
+			var ctx = document.getElementById("hourlyConsumptionChartForMonth");
+			statsController.hourlyConsumptionChartForMonth = new Chart(ctx, {
+				type: 'bar',
+				data: chartData,
+				options: {
+					elements: {
+						point: {
+							radius: 2
+						}
+					},
+					scales: {
+						yAxes: [{
+							ticks: {
+								beginAtZero:true
+							}
+						}]
+					}
+				}
+			});
+		});
+	}
+
 	statsController.getConsumptionPerDevice = function(){
 		$http.get('/api/consumptionPerDevice').then(function(response) {
 			var apiDataPoints = response.data;
@@ -150,15 +295,7 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 			};
 			let bgcolor = [];
 			let hoverbgcolor = [];
-			let chartColors = {
-				blue: 'rgb(54, 162, 235)',
-				red: 'rgb(210, 35, 60)',
-				green: 'rgb(75, 192, 192)',
-				yellow: 'rgb(255, 205, 86)',
-				orange: 'rgb(255, 159, 64)',
-				grey: 'rgb(231,233,237)',
-				purple: 'rgb(153, 102, 255)',
-			};
+			
 			apiDataPoints.forEach(function (item, index) {
 				uiDataPoints.x.push(item.consumption.toFixed(2));
 				uiDataPoints.y.push(item.name.toUpperCase());
