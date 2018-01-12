@@ -981,11 +981,12 @@ router.get('/consumptionPerHourMonthly', function(req, res){
 						// console.log("peak hour: "+hour._id);
 					}
 				});
-				let standard = consumption_standard.reduce((previous, current) => current += previous)*0.4/1000;
-				let peak = consumption_peak.reduce((previous, current) => current += previous)*0.4*1.82/1000;
-				let intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*0.4*1.15/1000;
-				let offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*0.4*0.78/1000;
-				let standard_best = (peak+intermediate+offpeak) < standard ? false : true;
+				var standard,peak,intermediate,offpeak,standard_best;
+				if (consumption_standard.length > 0) consumption_standard.reduce((previous, current) => current += previous)*0.4/1000;
+				if (consumption_peak.length > 0) consumption_peak.reduce((previous, current) => current += previous)*0.4*1.82/1000;
+				if (consumption_intermediate.length > 0) consumption_intermediate.reduce((previous, current) => current += previous)*0.4*1.15/1000;
+				if (consumption_offpeak.length > 0) consumption_offpeak.reduce((previous, current) => current += previous)*0.4*0.78/1000;
+				if (peak && intermediate && offpeak) (peak+intermediate+offpeak) < standard ? false : true;
 				
 				var promises = [];
 				function promise(device) {

@@ -22,7 +22,7 @@
 					<!-- <h4>{{item.name}}</h4> -->
 					<ul class="list-group device-box">
 							<li class="list-group-item device-box"><label>Ambiente</label>
-								<span class="label label-primary"> {{item.roomName | uppercase}} </span>
+								<span class="label label-primary"> {{item.roomName ? item.roomName : 'nenhum'}} </span>
 							</li>
 							<li class="list-group-item device-box" ng-if="item.connected"><label>Rádio</label> <span class="label label-success">conectado</span></li>
 							<li class="list-group-item device-box" ng-if="!item.connected"><label>Rádio</label> <span class="label label-warning">sem sinal</span></li>
