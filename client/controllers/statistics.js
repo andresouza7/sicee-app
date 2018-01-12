@@ -19,9 +19,10 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 
 	statsController.getRange = function () { // Runs once when page loads
 		$http.get('/api/getRange').then(function(response) {
+			if (response.data.length) {
 			statsController.range = response.data;
 			$scope.selectedOptionYear = statsController.range[0];
-			$scope.selectedOptionMonth = statsController.range[0].months[0];
+			$scope.selectedOptionMonth = statsController.range[0].months[0];}
 		});
 	}
 

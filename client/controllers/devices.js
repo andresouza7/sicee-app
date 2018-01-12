@@ -1,9 +1,74 @@
 var myApp = angular.module('myApp');
 
-myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$location', '$routeParams', function($scope, $interval, $http, $location, $routeParams){
+myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$location', '$routeParams','device','room', function($scope, $interval, $http, $location, $routeParams, device, room){
 	console.log('DevicesController loaded...');
 
 	var devController = this;
+	$scope.device = device;
+	$scope.templates = {
+		device_filter: {url: '../templates/device_filter.html'}
+	}
+	room.getRooms().then(function(data){
+		$scope.rooms_list = data;
+	});
+
+	devController.addRoom = function(room_name){
+		$http.post('/api/room', {
+			name: room_name,
+			devices: $scope.device.search_list.chosen
+		}).then(function(response) {
+			room.getRooms().then(function(data){
+				$scope.rooms_list = data;
+			});
+		});
+	}
+	devController.deleteRoom = function(room_id){
+		if (confirm('Confirmar exclusão?')){
+			$http.delete('/api/room/'+room_id).then(function(response){
+				room.getRooms().then(function(data){
+					$scope.rooms_list = data;
+				});
+			});
+		}
+	}
+	devController.removeDeviceFromRoom = function(room_id,device_id){
+		let data = {
+			room_id: room_id,
+			device_id: device_id
+		};
+		console.log(data);
+		// if (confirm('Desassociar dispositivo deste ambiente?')){
+			$http.post('/api/room/removeDevice',data).then(function(response){
+				devController.getDevices();
+				room.getRooms().then(function(data){
+					$scope.rooms_list = data;
+				});
+			});
+		// }
+	}
+	devController.addDeviceToRoom = function(room_id,device_id){
+		let data = {
+			room_id: room_id,
+			device_id: device_id
+		};
+		$http.post('/api/room/addDevice',data).then(function(response){
+			devController.getDevices();
+			room.getRooms().then(function(data){
+				$scope.rooms_list = data;
+			});
+		});
+	}
+	devController.editRoom = function(room_id,edit_room_name){
+		$http.put('/api/room/'+room_id,{
+			name: edit_room_name,
+			devices: $scope.device.search_list.chosen
+		}).then(function(response){
+			devController.getDevices();
+			room.getRooms().then(function(data){
+				$scope.rooms_list = data;
+			});
+		});
+	}
 
 	devController.getDevices = function(){
 		$http.get('/api/devices').then(function(response) {

@@ -8,7 +8,7 @@
 			<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseNewDevice" aria-expanded="false" aria-controls="collapseNewDevice">
 			Adicionar
 			</button>
-		</div>
+			</div>
 		</div>
 	</div>
 	<div class="collapse" id="collapseNewDevice">
@@ -29,107 +29,199 @@
 			</form>
 		</div>
 	</div>
-<br>
+	<br>
 
-<div class="panel panel-default">
-  <div class="panel-heading">
-    <h3 class="panel-title">Dispositivos cadastrados</h3>
-  </div>
-  <div class="panel-body" ng-init="devController.getDevices()">
+	<div class="panel panel-default">
+	<div class="panel-heading">
+		<h3 class="panel-title">Dispositivos cadastrados</h3>
+	</div>
+	<div class="panel-body" ng-init="devController.getDevices()">
 		<div class="row">
 			<div ng-repeat="device in devController.devices | filter: devController.searchDevice | orderBy:'name'">
 					<div class="col-sm-4">
-							<h4>{{device.name | uppercase}}</h4>
-							<span>
-									<div><label>WEBid:</label> {{device._id}}</div>
-									<div><label>Estado atual:</label> {{device.current_state | uppercase}}</div>
-									<div><label>Estado definido pelo usuário:</label> {{device.change_state | uppercase}}</div>
-									<div><label>RFid:</label> {{device.pipe}} <label ng-if="device.pipe==''">Dispositivo não pareado</label></div>
-							</span>
-							<button class="btn btn-primary" data-toggle="modal" data-target="#edit{{device._id}}">
-								<span class="glyphicon glyphicon-edit" aria-hidden="true"></span> Editar
-							</button>
-							<div class="modal fade" id="edit{{device._id}}" role="dialog">
-								<div class="modal-dialog modal-sm">
-									<div class="modal-content">
-										<form name="editDeviceForm">
-										<div class="modal-header">
-											<button type="button" class="close" data-dismiss="modal">&times;</button>
-											<h4 class="modal-title">Renomear dispositivo</h4>
-										</div>
-										
-										<div class="modal-body">
-											
-											<h4>Nome</h4>
-											<input type="text" class="form-control" placeholder="{{device.name}}" ng-model="devController.edit_device.name" required>
-											
-											
-										</div>
-										<div class="modal-footer">
-											<button type="button" class="btn btn-success" data-dismiss="modal" ng-disabled="editDeviceForm.$invalid" ng-click="devController.editDevice(device._id)">Salvar</button>
-											<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-										</div>
-										</form>
-									</div>
-								</div>
-							</div>
+						<h4>{{device.name | uppercase}}</h4>
+						<span>
+								<div><label>ID:</label> {{device._id}}</div>
+								<div><label>Placa medidora:</label> {{device.pipe ? 'Sicce '+device.pipe : 'Não pareado'}} </div>
+								<div>
+									<label>Ambiente:</label> 
+									<a href="" ng-if="!device.roomName" data-toggle="collapse" data-target="#addToRoom{{device._id}}">Associar</a>
+									<span ng-if="device.roomName">{{device.roomName}} <a href="" ng-click="devController.removeDeviceFromRoom(device.roomId,device._id)"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></span>
 
-							<button ng-click="devController.deleteDevice(device._id)" class="btn btn-danger">
-								<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Excluir
-							</button>
-							<!-- <button ng-click="turnOn(device._id)" class="btn btn-success">Ligar</button>
-							<button ng-click="turnOff(device._id)" class="btn btn-danger">Desligar</button> -->
-							<!-- <a class="btn btn-primary" href="#/control/details/{{book._id}}">Parear</a> -->
-							<button class="btn btn-default" ng-if="device.pipe!=''" data-toggle="modal" data-target="#ping{{device._id}}">
-								<span class="glyphicon glyphicon-transfer" aria-hidden="true"></span> Ping
-							</button>
-							<div class="modal fade" id="ping{{device._id}}" role="dialog">
-								<div class="modal-dialog modal-sm">
-									<div class="modal-content">
-										<div class="modal-header">
-											<button type="button" class="close" data-dismiss="modal" ng-click="devController.startRfPing(device._id)">&times;</button>
-											<h4 class="modal-title">Teste de conexão de rádiofrequência</h4>
-										</div>
-										<div class="modal-body">
-											<p>Dispositivo: {{device.deviceId}}</p>
-											<p>Canal de RF: {{device.pipe}}</p>
-											<p>---------</p>
-											<p>Pacote recebido: 22ms</p>
-										</div>
-										<div class="modal-footer">
-											<button type="button" class="btn btn-default" data-dismiss="modal" ng-click="devController.stopRfPing(device._id)">Ping</button>
-											<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>
+									<div class="collapse" id="addToRoom{{device._id}}">
+										<div class="well">
+											<span ng-repeat="room in rooms_list">
+												<button class="btn btn-primary btn-sm" data-toggle="collapse" ng-click="devController.addDeviceToRoom(room._id,device._id)">{{room.name | uppercase}}</button> 
+											</span>
 										</div>
 									</div>
+
+								</div>
+							</span><br>
+						<button class="btn btn-primary" data-toggle="modal" data-target="#edit{{device._id}}">
+							<span class="glyphicon glyphicon-edit" aria-hidden="true"></span> Editar
+						</button>
+						<div class="modal fade" id="edit{{device._id}}" role="dialog">
+							<div class="modal-dialog modal-sm">
+								<div class="modal-content">
+									<form name="editDeviceForm">
+									<div class="modal-header">
+										<button type="button" class="close" data-dismiss="modal">&times;</button>
+										<h4 class="modal-title">Renomear dispositivo</h4>
+									</div>
+									
+									<div class="modal-body">
+										
+										<h4>Nome</h4>
+										<input type="text" class="form-control" placeholder="{{device.name}}" ng-model="devController.edit_device.name" required>
+										
+										
+									</div>
+									<div class="modal-footer">
+										<button type="button" class="btn btn-success" data-dismiss="modal" ng-disabled="editDeviceForm.$invalid" ng-click="devController.editDevice(device._id)">Salvar</button>
+										<button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+									</div>
+									</form>
 								</div>
 							</div>
-							<button class="btn btn-default" ng-if="device.pipe==''" data-toggle="modal" data-target="#sync{{device._id}}" ng-click="devController.rfTether(device._id,true)">
-									<span class="glyphicon glyphicon-signal" aria-hidden="true"></span> Parear
-							</button>
-							<div class="modal fade" id="sync{{device._id}}" role="dialog">
-								<div class="modal-dialog modal-sm">
-									<div class="modal-content">
-										<div class="modal-header">
-											<button type="button" class="close" data-dismiss="modal">&times;</button>
-											<h4 class="modal-title">Nova conexão de rádiofrequência</h4>
-										</div>
-										<div class="modal-body">
-											<label>{{devController.tetherMsg}}</label>
-										</div>
-										<div class="modal-footer">
-											<button type="button" class="btn btn-default" data-dismiss="modal" ng-click="devController.rfTether(device._id,false)">Fechar</button>
-										</div>
+						</div>
+
+						<button ng-click="devController.deleteDevice(device._id)" class="btn btn-danger">
+							<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Excluir
+						</button>
+						<!-- <button ng-click="turnOn(device._id)" class="btn btn-success">Ligar</button>
+						<button ng-click="turnOff(device._id)" class="btn btn-danger">Desligar</button> -->
+						<!-- <a class="btn btn-primary" href="#/control/details/{{book._id}}">Parear</a> -->
+						<button class="btn btn-default" ng-if="device.pipe!=''" data-toggle="modal" data-target="#ping{{device._id}}">
+							<span class="glyphicon glyphicon-transfer" aria-hidden="true"></span> Ping
+						</button>
+						<div class="modal fade" id="ping{{device._id}}" role="dialog">
+							<div class="modal-dialog modal-sm">
+								<div class="modal-content">
+									<div class="modal-header">
+										<button type="button" class="close" data-dismiss="modal" ng-click="devController.startRfPing(device._id)">&times;</button>
+										<h4 class="modal-title">Teste de conexão de rádiofrequência</h4>
+									</div>
+									<div class="modal-body">
+										<p>Dispositivo: {{device.deviceId}}</p>
+										<p>Canal de RF: {{device.pipe}}</p>
+										<p>---------</p>
+										<p>Pacote recebido: 22ms</p>
+									</div>
+									<div class="modal-footer">
+										<button type="button" class="btn btn-default" data-dismiss="modal" ng-click="devController.stopRfPing(device._id)">Ping</button>
+										<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>
 									</div>
 								</div>
 							</div>
 						</div>
-						
+						<button class="btn btn-default" ng-if="device.pipe==''" data-toggle="modal" data-target="#sync{{device._id}}" ng-click="devController.rfTether(device._id,true)">
+								<span class="glyphicon glyphicon-signal" aria-hidden="true"></span> Parear
+						</button>
+						<div class="modal fade" id="sync{{device._id}}" role="dialog">
+							<div class="modal-dialog modal-sm">
+								<div class="modal-content">
+									<div class="modal-header">
+										<button type="button" class="close" data-dismiss="modal">&times;</button>
+										<h4 class="modal-title">Nova conexão de rádiofrequência</h4>
+									</div>
+									<div class="modal-body">
+										<label>{{devController.tetherMsg}}</label>
+									</div>
+									<div class="modal-footer">
+										<button type="button" class="btn btn-default" data-dismiss="modal" ng-click="devController.rfTether(device._id,false)">Fechar</button>
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
+			</div>
 		</div>
 	</div>
-</div>
+
+	<div class="row">
+		<div class="col-xs-6">
+				<input type="text" class="form-control" placeholder="Filtrar por nome" ng-model="devController.searchDevice">
+		</div>
+		<div class="col-xs-6">
+			<div class="pull-right">
+			<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseNewRoom" aria-expanded="false" aria-controls="collapseNewRoom">
+			Adicionar
+			</button>
+			</div>
+		</div>
+	</div>
+	<div class="collapse" id="collapseNewRoom">
+		<div class="well">
+			<form name="newRoomForm" ng-submit="devController.addRoom(new_room_name)">
+			<p>
+				<h4>Nome</h4>
+				<input type="text" class="form-control" placeholder="quarto, sala..." ng-model="new_room_name" required>
+			</p>
+			<!-- <h4>Adicionar Dispositivos</h4>
+			<div ng-include="templates.device_filter.url"></div> -->
+				<button type="submit" class="btn btn-success btn-sm" data-toggle="collapse" data-target="#collapseNewRoom" ng-disabled="newRoomForm.$invalid">
+					<span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Salvar
+				</button>
+				<button type="button" class="btn btn-default btn-sm" data-toggle="collapse" data-target="#collapseNewRoom">
+					<span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancelar
+				</button>
+			</form>
+		</div>
+	</div>
+	<br>
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h3 class="panel-title">Ambientes cadastrados</h3>
+		</div>
+		<div class="panel-body">
+			<div class="row">
+				<div ng-repeat="room in rooms_list | orderBy:'name'">
+					<div class="col-sm-4">
+						<h4>{{room.name | uppercase}}</h4>
+						<p>Dispositivos:</p>
+						<ul class="list-group device-box">
+						<li class="list-group-item device-box" ng-repeat="device in room.devices | orderBy:'name'">
+								{{device.name | uppercase}} <a href="" ng-click="devController.removeDeviceFromRoom(room._id,device._id)"><span class="glyphicon glyphicon-remove"></span></a>
+						</li>
+						</ul><br>
+
+						<button class="btn btn-primary" 
+						data-toggle="collapse" 
+						data-target="#editRoom{{room._id}}">
+							<span class="glyphicon glyphicon-edit" aria-hidden="true"></span> Editar
+						</button>
+						<div class="collapse" id="editRoom{{room._id}}">
+							<div class="well">
+								<form name="editRoomForm">
+								<p>
+									<h4>Renomear</h4>
+									<input type="text" class="form-control" placeholder="sala, quarto..." ng-model="edit_room_name" required>
+								</p>	
+								<div>
+									<button type="submit" class="btn btn-success btn-sm" data-toggle="collapse" data-target="#editRoom{{room._id}}" ng-disabled="editRoomForm.$invalid" ng-click="devController.editRoom(room._id,edit_room_name)">
+										<span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Salvar
+									</button>
+									<button type="button" class="btn btn-default btn-sm" data-toggle="collapse" data-target="#editRoom{{room._id}}">
+										<span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancelar
+									</button>
+								</div>
+								</form>
+							</div>
+						</div>
+
+						<button ng-click="devController.deleteRoom(room._id)" class="btn btn-danger">
+							<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Excluir
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
 </div>
+
+<!-- </div> -->
 <!-- <div class="pull-right">
 </div> -->

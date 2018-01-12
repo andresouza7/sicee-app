@@ -6,6 +6,10 @@ let consumptionSchema = mongoose.Schema({
     type: String,
     required: true
   },
+  roomId:{
+    type: String,
+    required: true
+  },
   consumption:{
     type: Number,
     required: true

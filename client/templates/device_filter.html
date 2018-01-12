@@ -1,0 +1,15 @@
+<div class="form-group">
+    <label>Escolha um dispositivo <sup>*</sup></label>
+    <input type="text" class="form-control" placeholder="Nome..." ng-model="device_filter_name" ng-keyup="" ng-change="device.search(device_filter_name)">
+</div>
+<span ng-repeat="item in device.search_list.filtered">
+    <button class="btn btn-default" data-ng-click="device.manageSearchList(item,'add')">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> {{item.name | uppercase}}
+    </button>
+</span>
+    <div class="tips" ng-if="device.search_list.chosen.length">Clique para remover</div>
+<span ng-repeat="item in device.search_list.chosen">
+    <button class="btn btn-default btn-sm" data-ng-click="device.manageSearchList(item,'remove')">
+        {{item.name | uppercase}} <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+    </button>
+</span>

@@ -6,12 +6,8 @@ let telemetrySchema = mongoose.Schema({
     type: String, //mongoose.Schema.ObjectId
     required: true
   },
-  deviceName:{
+  roomId:{
     type: String,
-    required: true
-  },
-  radioconn:{
-    type: Boolean,
     required: true
   },
   power:{

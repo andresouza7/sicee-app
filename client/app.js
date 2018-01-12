@@ -15,7 +15,54 @@ myApp.factory("log",function($http,$q,$rootScope) {
             });
         }
 	};
-  });
+});
+
+myApp.factory("device",function($http,$q,$rootScope) {
+	var search_list = {
+		filtered: [],
+		chosen: []
+	}
+
+	var search = function (keyword) { 
+		return $http.get('/devices/search/'+keyword).then(function(response) {
+			console.log(response.data);
+			if(search_list.chosen.length > 0) {
+				if (response.data.length > 0) {
+				response.data.forEach(function (device){
+					search_list.chosen.forEach(function (list_item){
+						if (device.name == list_item.name){
+							response.data.splice(response.data.indexOf(device.name,1));
+						} 
+					});
+				});
+				search_list.filtered = response.data;
+				}
+			} else {
+				search_list.filtered = response.data;
+			}
+		});
+	}
+	var manageSearchList = function (device,option) {
+		if (option == 'add') {
+			if (!search_list.chosen){
+				// search_list.chosen = [];
+				search_list.chosen.push(device);
+			} else {
+				search_list.chosen.push(device);
+			}
+		}
+		if (option == 'remove') {
+			search_list.chosen.splice(search_list.chosen.indexOf(device.name),1);
+		}
+		search_list.filtered.splice(0, search_list.filtered.length);
+	}
+
+	return {
+		search: search,
+		manageSearchList: manageSearchList,
+		search_list: search_list
+	};
+});
 
 myApp.factory('socket', function ($rootScope) {
 	var socket = io.connect();
@@ -39,6 +86,15 @@ myApp.factory('socket', function ($rootScope) {
 		})
 	  }
 	};
+});
+
+myApp.factory("room",function($http,$q,$rootScope) {
+	return {
+		getRooms: function() {return $http.get('/api/room').then(function(response) {
+			return response.data;
+			});
+		}
+	}
 });
 
 myApp.config(function($routeProvider){

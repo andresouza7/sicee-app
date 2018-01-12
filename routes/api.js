@@ -29,6 +29,8 @@ var RfTelemetry = require('../models/rftelemetry');
 var SysLog = require('../models/syslog');
 // Economy rule Model
 var EconomyRule = require('../models/economy_rule');
+// Room Model
+var Room = require('../models/room');
 
 // Socket io Config
 var io = app.io;
@@ -166,6 +168,11 @@ function getNameById (id) {
 		return response;
 	});
 }
+function getRoomNameById (id) {
+	return Room.findOne({_id: id},{name:1}).exec(function (err,response){
+		return response;
+	});
+}
 
 // LOOK FOR SYSTEM SHUTDOWN...
 function log (state) {
@@ -225,6 +232,130 @@ setInterval(function(){
 }, 10000);
 
 // =========================== HTTP ROUTES ===========================
+// consumption for room
+router.get('/room/consumption', function(req, res){
+	Room.find({}).exec(function(err, rooms){
+		var promises = [];
+		function promise(room){
+			return new Promise (function (resolve, reject){
+				// Sums total consumption for all the devices in the room
+				let start = new Date(getLocalDate().year,getLocalDate().month-1,1);
+				let end = new Date(getLocalDate().year,getLocalDate().month,0);
+				let match = {$match:{roomId:String(room._id),deviceId:{$in: room.devices},timestamp:{$gte:start,$lt:end}}};
+				let group = {$group:{_id:"$day",total:{$sum:"$consumption"}}};
+				Consumption.aggregate([match,group]).exec(function(err, consumption){
+					return resolve({
+						room: room.name,
+						consumption: consumption,
+						period: {
+							start: start,
+							end: end
+						}
+					});
+				});
+			}); // promise return
+		} // promise function
+		rooms.forEach(function(room){
+			promises.push(promise(room));
+		}); // room loop
+		Promise.all(promises).then(function(data){
+			res.json(data);
+		});
+	}); // main db search
+	// res.sendStatus(200);
+});
+
+// ===== ROOMS MANAG. START =====
+router.post('/room', function(req, res){
+	let data = req.body;
+	let room = new Room();
+	if (typeof data.devices != 'undefined')
+		room.devices = data.devices;
+	room.name = data.name;
+	room.createdAt = new Date();
+	room.save(function (err){
+		if (err) console.log(err);
+	})
+	res.sendStatus(200);
+});
+router.get('/room', function(req, res){
+	Room.find({},function(err,rooms){
+		var promises = [];
+		function promise(room) {
+			return new Promise (function (resolve, reject){
+				var nested_promises = [];
+				function nestedPromise(device){
+					return new Promise(function(resolve, reject){
+						Device.findById(device).exec(function(err, dev){
+							// console.log("name: "+dev.name);
+							return resolve({name: dev.name, _id: dev._id})
+						})
+
+					});
+				}
+				room.devices.forEach(function(device){
+					nested_promises.push(nestedPromise(device));
+				});
+				Promise.all(nested_promises).then(function(nestedData){
+					// console.log(nestedData);
+					return resolve({
+						_id: room._id,
+						createdAt: room.createdAt,
+						name: room.name,
+						devices: nestedData
+					});
+				});
+			});
+		}
+		rooms.forEach(function(room){
+			promises.push(promise(room));
+		});
+		Promise.all(promises).then(function(data){
+			console.log(data);
+			res.json(data);
+		});
+		// res.json(rooms);
+	});
+});
+router.put('/room/:id', function(req, res){
+	console.log(req.body);
+	let data = req.body;
+	if (data.name) {
+		Room.update({_id:req.params.id},{name:data.name}).exec(function(err,rooms){
+		});
+	}
+	data.devices.forEach(function(device){
+		Room.update({_id:req.params.id},{$addToSet: { devices: {name: device.name, _id: device._id} }}).exec(function(err,res){
+		});
+	});
+	res.sendStatus(200);
+});
+router.delete('/room/:id', function(req, res){
+	Room.findByIdAndRemove(req.params.id).exec(function(err,rooms){
+		res.sendStatus(200);
+	});
+});
+router.post('/room/removeDevice', function(req, res){ // NEEDS TO UPDATE BOTH ROOM AND DEVICE COLLECTIONS
+	console.log(req.body);
+	let data = req.body;
+	Room.update({_id: data.room_id},{ $pull: { devices: data.device_id } }).exec(function(err,rooms){
+	});
+	Device.update({_id: data.device_id},{roomId: null}).exec(function(err,response){
+	});
+	res.sendStatus(200);
+});
+router.post('/room/addDevice', function(req, res){
+	console.log(req.body);
+	let data = req.body;
+	Room.update({_id: data.room_id},{ $addToSet: { devices: data.device_id  } }).exec(function(err,rooms){
+		
+	});
+	Device.update({_id: data.device_id},{roomId: data.room_id}).exec(function(err, res){
+
+	});
+	res.sendStatus(200);
+});
+// ===== ROOMS END =====\
 
 // ===== ECONOMY RULE START =====
 router.post('/economy_rule', function(req, res){ // ADD RULE
@@ -418,8 +549,40 @@ router.get('/devices', function(req, res){
 		if(err){
 		  console.log(err);
 		} else {
-		//   console.log(devices);
-		  res.json(devices);
+			var promises = [];
+			function promise(device){
+				return new Promise (function (resolve,reject){
+					Room.find({_id: device.roomId}).exec(function(err, room){
+						if (room.length > 0) {
+							// console.log(device);
+							let new_data = {
+								_id: device._id,
+								name: device.name,
+								roomId: device.roomId,
+								telemetry: device.telemetry,
+								sync: device.sync,
+								pipe: device.pipe,
+								change_state: device.change_state,
+								current_state: device.current_state,
+								roomName: room[0].name
+							};
+							if (err) reject(err);
+							else resolve(new_data);
+						} else {
+							resolve(device);
+						}
+					});
+				});
+			}
+			devices.forEach(function(device){
+				promises.push(promise(device))
+			})
+			Promise.all(promises).then(function(data){
+				// console.log(data);
+				res.json(data);
+			})
+			// console.log(devices);
+		  	
 		}
 	});
 });
@@ -1149,191 +1312,198 @@ router.post('/telemetry', function(req, res) {
 					console.log(err);
 				} else {
 					if (device) { // if there is a virtual device paired with this pipe, save to db, otherwise add a new device
-						let devId = device._id;
-						//data is received from the gateway in an array containing 13-digit strings: 
-						//pRvvv.vII.II == pipe(1)+relay_status(2)+voltage(5)+current(5)
-						let relayState = parseInt(item.substring(1, 2));
-						let vrms = parseFloat(item.substring(2,7))*2;
-						let irms = parseFloat(item.substring(7,12));
-						let power = vrms*irms;
-						// console.log(devId);
-						// console.log(vrms);
-						// console.log(irms);
-						// console.log(power);
+						if (device.roomId)
+						{
+							let devId = device._id;
+							//data is received from the gateway in an array containing 13-digit strings: 
+							//pRvvv.vII.II == pipe(1)+relay_status(2)+voltage(5)+current(5)
+							let relayState = parseInt(item.substring(1, 2));
+							let vrms = parseFloat(item.substring(2,7))*2;
+							let irms = parseFloat(item.substring(7,12));
+							let power = vrms*irms;
+							// console.log(devId);
+							// console.log(vrms);
+							// console.log(irms);
+							// console.log(power);
 
-						let sampleRateInHours = 10.0/3600.0; // 10 seconds converted to hour
-						let telemetry = new Telemetry();
-						let consumption = new Consumption();
+							let sampleRateInHours = 10.0/3600.0; // 10 seconds converted to hour
+							let telemetry = new Telemetry();
+							let consumption = new Consumption();
 
-						telemetry.radioconn = true;
-						telemetry.deviceId = devId;
-						telemetry.deviceName = device.name;
-						telemetry.power = power;
-						telemetry.voltage = vrms;
-						telemetry.current = irms;
-						telemetry.timestamp = getLocalDate().timestamp;
-						telemetry.month = getLocalDate().month;
-						telemetry.day = getLocalDate().day;
-						telemetry.hour = getLocalDate().hour;
-						console.log("telemetry for "+telemetry.deviceName+" at "+telemetry.timestamp);
-						// console.log("month: "+telemetry.month);
-						// console.log("day: "+telemetry.day);
-						// console.log("hour: "+telemetry.hour);
-						
-						consumption.deviceId = devId;
-						consumption.consumption = power*sampleRateInHours;
-						consumption.timestamp = getLocalDate().timestamp;
-						consumption.month = getLocalDate().month;
-						consumption.day = getLocalDate().day;
-						consumption.hour = getLocalDate().hour;
-						telemetry_list.push(telemetry);
-						consumption_list.push(consumption);
+							telemetry.radioconn = true;
+							telemetry.deviceId = devId;
+							telemetry.deviceName = device.name;
+							telemetry.roomId = device.roomId;
+							telemetry.power = power;
+							telemetry.voltage = vrms;
+							telemetry.current = irms;
+							telemetry.timestamp = getLocalDate().timestamp;
+							telemetry.month = getLocalDate().month;
+							telemetry.day = getLocalDate().day;
+							telemetry.hour = getLocalDate().hour;
+							console.log("telemetry for "+telemetry.deviceName+" at "+telemetry.timestamp);
+							// console.log("month: "+telemetry.month);
+							// console.log("day: "+telemetry.day);
+							// console.log("hour: "+telemetry.hour);
+							
+							consumption.deviceId = devId;
+							consumption.roomId = device.roomId;
+							consumption.consumption = power*sampleRateInHours;
+							consumption.timestamp = getLocalDate().timestamp;
+							consumption.month = getLocalDate().month;
+							consumption.day = getLocalDate().day;
+							consumption.hour = getLocalDate().hour;
+							telemetry_list.push(telemetry);
+							consumption_list.push(consumption);
 
-						// Updates the telemetry field of the devices sending data. This will indicate
-						// which devices are connected and which are not
-						Device.update({_id: device._id},{telemetry: telemetry}).exec(function(err, res){
-							if (err)
-								log(err);
-						});
-
-						// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
-						// This keeps tasks in memory. So if a command fails to execute,
-						// the server will keep sending it until it does.
-
-						// it takes 20 to 30s for the feedback on the relay state change to arrive
-						if (relayState==1) {
-							Device.update({pipe: pipe}, {current_state:"on"}, function(err){
-								if(err){
-									console.log(err);
-									return;
-								}
+							// Updates the telemetry field of the devices sending data. This will indicate
+							// which devices are connected and which are not
+							Device.update({_id: device._id},{telemetry: telemetry}).exec(function(err, res){
+								if (err)
+									log(err);
 							});
-						} else if (relayState==0) {
-							Device.update({pipe: pipe}, {current_state:"off"}, function(err){
-								if(err){
-									console.log(err);
-									return;
-								}
-							});
-						}
 
-						// ==========================================================
-						// RULES DEFINED BY THE USER FOR AUTOMATION AND NOTIFICATIONS
-						// *** START ***
+							// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
+							// This keeps tasks in memory. So if a command fails to execute,
+							// the server will keep sending it until it does.
 
-						// CURRENT FILTER
-						Rule.find({reference:"current"}).exec(function (err, rules){
-							rules.forEach(function (rule){
-								rule.devices.forEach(function (device){
-									if (telemetry.deviceId == device._id) {
-										if (telemetry.current > rule.threshold) {
-											if (rule.action.notify_checked) {
-												notify = true;
-											}
-											if (rule.action.on_checked){
-												updateState(device._id,"on");
-											}
-											if (rule.action.off_checked){
-												updateState(device._id,"off");
-											}
-											console.log("current rule detected for device: "+device.name);
-										}
+							// it takes 20 to 30s for the feedback on the relay state change to arrive
+							if (relayState==1) {
+								Device.update({pipe: pipe}, {current_state:"on"}, function(err){
+									if(err){
+										console.log(err);
+										return;
 									}
 								});
-							});
-						});
-
-						Rule.find({"action.off_checked":true,"time.start_time":{$lte:new Date()},"time.end_time":{$gte:new Date()}},function(err, rules) {
-							// console.log(new Date());
-							rules.forEach(function(rule){
-								rule.devices.forEach(function(device, index){
-									if (device._id == telemetry.deviceId) {
-										if (relayState == 1) { //relayState = 1 is the board feedback saying its on
-											updateState(device._id,"off");
-											// console.log("equipamento proibido de funcionar este horario");
-											let newlog = new Log();
-											newlog.event = "usuario "+rule.userInfo.username+" tentou ligar equipamento "+device.name;
-											newlog.timestamp = new Date();
-											newlog.save(function(err, response){
-												if (err) console.log(err);
-											});
-										}
+							} else if (relayState==0) {
+								Device.update({pipe: pipe}, {current_state:"off"}, function(err){
+									if(err){
+										console.log(err);
+										return;
 									}
 								});
-							});
-						});
+							}
 
-						// LOOKS FOR ECONOMY RULES DEFINED FOR EACH DEVICE
-						EconomyRule.find({deviceId: devId}).exec(function (err, rules){
-							if (rules) {
+							// ==========================================================
+							// RULES DEFINED BY THE USER FOR AUTOMATION AND NOTIFICATIONS
+							// *** START ***
+
+							// CURRENT FILTER
+							Rule.find({reference:"current"}).exec(function (err, rules){
+								rules.forEach(function (rule){
+									rule.devices.forEach(function (device){
+										if (telemetry.deviceId == device._id) {
+											if (telemetry.current > rule.threshold) {
+												if (rule.action.notify_checked) {
+													notify = true;
+												}
+												if (rule.action.on_checked){
+													updateState(device._id,"on");
+												}
+												if (rule.action.off_checked){
+													updateState(device._id,"off");
+												}
+												console.log("current rule detected for device: "+device.name);
+											}
+										}
+									});
+								});
+							});
+
+							Rule.find({"action.off_checked":true,"time.start_time":{$lte:new Date()},"time.end_time":{$gte:new Date()}},function(err, rules) {
+								// console.log(new Date());
 								rules.forEach(function(rule){
-									var timenow = new Date().getHours() + new Date().getMinutes()/60;
-									var start = rule.timeoff_start.getHours() + rule.timeoff_start.getMinutes()/60;
-									var end = rule.timeoff_end.getHours() + rule.timeoff_end.getMinutes()/60;
-									// console.log("timenow"+timenow);
-									// console.log("start"+start);
-									// console.log("end"+end);
-									if (timenow >= start && timenow < end && relayState == 1) {
-										updateState(rule.deviceId,"off");
-										console.log("device cannot be on at this time");
-									}
+									rule.devices.forEach(function(device, index){
+										if (device._id == telemetry.deviceId) {
+											if (relayState == 1) { //relayState = 1 is the board feedback saying its on
+												updateState(device._id,"off");
+												// console.log("equipamento proibido de funcionar este horario");
+												let newlog = new Log();
+												newlog.event = "usuario "+rule.userInfo.username+" tentou ligar equipamento "+device.name;
+												newlog.timestamp = new Date();
+												newlog.save(function(err, response){
+													if (err) console.log(err);
+												});
+											}
+										}
+									});
 								});
-							}
-						});
-						
-						// DETECT IF VOLTAGE IS 127V OR 220V
-						const voltage_max_threshold_127 = 135.0;
-						const voltage_min_threshold_127 = 110.0;
-						const voltage_max_threshold_220 = 230.0;
-						const voltage_min_threshold_220 = 210.0;
-						if (vrms < 160) { // voltage is supposed to be 127v
-							if (vrms < voltage_min_threshold_127 || vrms > voltage_max_threshold_127) {
-								let notification = new Notification();
-								notification.nature = 'voltage';
-								notification.description = 'A tensão está em '+vrms+' V. Pode haver um problema neste ponto da rede elétrica';
-								notification.save(function(err){
-									if (err) {
-										console.log(err);
-										return;
-									}
-								});
-							}
-						} else { // voltage is supposed to be 220v
-							if (vrms < voltage_min_threshold_220 || vrms > voltage_max_threshold_220) {
-								let notification = new Notification();
-								notification.nature = 'voltage';
-								notification.description = 'A tensão está em '+vrms+' V. Pode haver um problema neste ponto da rede elétrica';
-								notification.save(function(err){
-									if (err) {
-										console.log(err);
-										return;
-									}
-								});
-							}
-						}
-				
-						// DETECT IF CURRENT IS TOO HIGH
-						const current_max_threshold = 10.0;
-						if (irms > current_max_threshold) {
-							let notification = new Notification();
-							notification.nature = 'current';
-							notification.description = 'Valor alto de corrente registrado: '+irms+' A';
-							notification.save(function(err){
-								if (err) {
-									console.log(err);
-									return;
+							});
+
+							// LOOKS FOR ECONOMY RULES DEFINED FOR EACH DEVICE
+							EconomyRule.find({deviceId: devId}).exec(function (err, rules){
+								if (rules) {
+									rules.forEach(function(rule){
+										var timenow = new Date().getHours() + new Date().getMinutes()/60;
+										var start = rule.timeoff_start.getHours() + rule.timeoff_start.getMinutes()/60;
+										var end = rule.timeoff_end.getHours() + rule.timeoff_end.getMinutes()/60;
+										// console.log("timenow"+timenow);
+										// console.log("start"+start);
+										// console.log("end"+end);
+										if (timenow >= start && timenow < end && relayState == 1) {
+											updateState(rule.deviceId,"off");
+											console.log("device cannot be on at this time");
+										}
+									});
 								}
 							});
-						}
-
-						// RULES DEFINED BY THE USER FOR AUTOMATION AND NOTIFICATIONS
-						// *** END ***
-						// ==========================================================
+							
+							// DETECT IF VOLTAGE IS 127V OR 220V
+							const voltage_max_threshold_127 = 135.0;
+							const voltage_min_threshold_127 = 110.0;
+							const voltage_max_threshold_220 = 230.0;
+							const voltage_min_threshold_220 = 210.0;
+							if (vrms < 160) { // voltage is supposed to be 127v
+								if (vrms < voltage_min_threshold_127 || vrms > voltage_max_threshold_127) {
+									let notification = new Notification();
+									notification.nature = 'voltage';
+									notification.description = 'A tensão está em '+vrms+' V. Pode haver um problema neste ponto da rede elétrica';
+									notification.save(function(err){
+										if (err) {
+											console.log(err);
+											return;
+										}
+									});
+								}
+							} else { // voltage is supposed to be 220v
+								if (vrms < voltage_min_threshold_220 || vrms > voltage_max_threshold_220) {
+									let notification = new Notification();
+									notification.nature = 'voltage';
+									notification.description = 'A tensão está em '+vrms+' V. Pode haver um problema neste ponto da rede elétrica';
+									notification.save(function(err){
+										if (err) {
+											console.log(err);
+											return;
+										}
+									});
+								}
+							}
 					
-						// When telemetry from all devices have been read, execute the code that
-						// depend from the asynchronous result.
-						if (index == req.body.length-1) {
-							callback();
+							// DETECT IF CURRENT IS TOO HIGH
+							const current_max_threshold = 10.0;
+							if (irms > current_max_threshold) {
+								let notification = new Notification();
+								notification.nature = 'current';
+								notification.description = 'Valor alto de corrente registrado: '+irms+' A';
+								notification.save(function(err){
+									if (err) {
+										console.log(err);
+										return;
+									}
+								});
+							}
+
+							// RULES DEFINED BY THE USER FOR AUTOMATION AND NOTIFICATIONS
+							// *** END ***
+							// ==========================================================
+						
+							// When telemetry from all devices have been read, execute the code that
+							// depend from the asynchronous result.
+							if (index == req.body.length-1) {
+								callback();
+							}
+						} else {
+							console.log("Add device "+device.name+" to a room");
 						}
 					} else {
 						Device.findOne({sync: true}).exec(function(err, device) {

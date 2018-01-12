@@ -18,6 +18,9 @@ let deviceSchema = mongoose.Schema({
     type: String,
     default:""
   },
+  roomId: {
+    type: String
+  },
   sync: {
     type:Boolean,
     default:false
