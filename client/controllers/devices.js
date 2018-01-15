@@ -1,6 +1,7 @@
 var myApp = angular.module('myApp');
 
-myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$location', '$routeParams','device','room', function($scope, $interval, $http, $location, $routeParams, device, room){
+myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$location', '$routeParams','device','room','user', 
+function($scope, $interval, $http, $location, $routeParams, device, room, user){
 	console.log('DevicesController loaded...');
 
 	var devController = this;
@@ -13,6 +14,7 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 		$scope.rooms_list = data;
 		console.log($scope.rooms_list);
 	});
+	$scope.user = user.getUser();
 
 	devController.newMeasure = function(roomId){
 		$http.post('/api/room/measure', {

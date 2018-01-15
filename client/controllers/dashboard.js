@@ -1,6 +1,8 @@
 var myApp = angular.module('myApp');
 
-myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$timeout', '$http', '$location', '$routeParams','log','socket', function($scope,$cookies, $interval, $timeout, $http, $location, $routeParams,log,socket){
+myApp.controller('DashboardController', 
+	['$scope', '$cookies', '$interval', '$timeout', '$http', '$location', '$routeParams','log','socket','user', 
+	function($scope,$cookies, $interval, $timeout, $http, $location, $routeParams,log,socket,user){
 	console.log('DashboardController loaded...');
 
 	dashController = this;
@@ -8,6 +10,7 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 	log.getlogs().then(function(data){
 		$scope.logs = data;
 	});
+	$scope.user = user.getUser();
 
 	this.filter_list; // filters devices in the database by user input
 	this.auto_dev_list; // devices from filter_list chosen by user

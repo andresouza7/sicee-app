@@ -5,7 +5,13 @@
 		</div>
 		<div class="col-xs-6">
 			<div class="pull-right">
-			<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseNewDevice" aria-expanded="false" aria-controls="collapseNewDevice">
+			<button class="btn btn-primary" 
+			type="button" 
+			data-toggle="collapse" 
+			data-target="#collapseNewDevice" 
+			aria-expanded="false" 
+			aria-controls="collapseNewDevice"
+			ng-disabled="!user">
 			Adicionar
 			</button>
 			</div>
@@ -45,8 +51,18 @@
 								<div><label>Placa medidora:</label> {{device.pipe ? 'Sicce '+device.pipe : 'Não pareado'}} </div>
 								<div>
 									<label>Circuito:</label> 
-									<a href="" ng-if="!device.roomName" data-toggle="collapse" data-target="#addToRoom{{device._id}}">Associar</a>
-									<span ng-if="device.roomName">{{device.roomName}} <a href="" ng-click="devController.removeDeviceFromRoom(device.roomId,device._id)"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></span>
+									<a href="" 
+									ng-class="{linkDisabled: !user}"
+									ng-if="!device.roomName" 
+									data-toggle="collapse" 
+									data-target="#addToRoom{{device._id}}">Associar</a>
+									<span ng-if="device.roomName">{{device.roomName}} 
+										<a href="" 
+										ng-class="{linkDisabled: !user}"
+										ng-click="devController.removeDeviceFromRoom(device.roomId,device._id)">
+										<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+										</a>
+									</span>
 
 									<div class="collapse" id="addToRoom{{device._id}}">
 										<div class="well">
@@ -59,7 +75,7 @@
 
 								</div>
 							</span><br>
-						<button class="btn btn-primary" data-toggle="modal" data-target="#edit{{device._id}}">
+						<button ng-disabled="!user" class="btn btn-primary" data-toggle="modal" data-target="#edit{{device._id}}">
 							<span class="glyphicon glyphicon-edit" aria-hidden="true"></span> Editar
 						</button>
 						<div class="modal fade" id="edit{{device._id}}" role="dialog">
@@ -87,7 +103,7 @@
 							</div>
 						</div>
 
-						<button ng-click="devController.deleteDevice(device._id)" class="btn btn-danger">
+						<button ng-disabled="!user" ng-click="devController.deleteDevice(device._id)" class="btn btn-danger">
 							<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Excluir
 						</button>
 						<!-- <button ng-click="turnOn(device._id)" class="btn btn-success">Ligar</button>
@@ -116,7 +132,7 @@
 								</div>
 							</div>
 						</div>
-						<button class="btn btn-default" ng-if="device.pipe==''" data-toggle="modal" data-target="#sync{{device._id}}" ng-click="devController.rfTether(device._id,true)">
+						<button ng-disabled="!user" class="btn btn-default" ng-if="device.pipe==''" data-toggle="modal" data-target="#sync{{device._id}}" ng-click="devController.rfTether(device._id,true)">
 								<span class="glyphicon glyphicon-signal" aria-hidden="true"></span> Parear
 						</button>
 						<div class="modal fade" id="sync{{device._id}}" role="dialog">
@@ -147,7 +163,7 @@
 		</div>
 		<div class="col-xs-6">
 			<div class="pull-right">
-			<button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseNewRoom" aria-expanded="false" aria-controls="collapseNewRoom">
+			<button ng-disabled="!user" class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseNewRoom" aria-expanded="false" aria-controls="collapseNewRoom">
 			Adicionar
 			</button>
 			</div>
@@ -185,19 +201,27 @@
 						<p>Dispositivos:</p>
 						<ul class="list-group device-box">
 							<li class="list-group-item device-box" ng-repeat="device in room.devices | orderBy:'name'">
-									{{device.name | uppercase}} <a href="" ng-click="devController.removeDeviceFromRoom(room._id,device._id)"><span class="glyphicon glyphicon-remove"></span></a>
+								{{device.name | uppercase}} 
+								<a href="" 
+									ng-class="{linkDisabled: !user}" 
+									ng-click="devController.removeDeviceFromRoom(room._id,device._id)">
+									<span class="glyphicon glyphicon-remove"></span>
+								</a>
 							</li>
 						</ul>
 						<p>Medições:</p>
 						<ul class="list-group device-box">
 							<li class="list-group-item device-box" ng-repeat="measure in room.measures">
 									<a href="#/statistics/{{measure._id}}">{{measure.period_start | date:'d/MM/yy HH:mm:ss'}} a {{measure.period_end | date:'d/MM/yy HH:mm:ss'}}</a>
-									<a href="" ng-click="devController.removeMeasureFromRoom(room._id,measure._id)">
+									<a href="" 
+									ng-class="{linkDisabled: !user}"
+									ng-click="devController.removeMeasureFromRoom(room._id,measure._id)">
 										<span class="glyphicon glyphicon-remove"></span>
 									</a>
 							</li>
 						</ul>
 						<a href="" 
+						ng-class="{linkDisabled: !user}"
 						data-toggle="collapse" 
 						data-target="#newMeasure{{room._id}}">
 							<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Programar
@@ -207,7 +231,8 @@
 						</div>
 						<br><br>
 
-						<button class="btn btn-primary" 
+						<button ng-disabled="!user"
+						class="btn btn-primary" 
 						data-toggle="collapse" 
 						data-target="#editRoom{{room._id}}">
 							<span class="glyphicon glyphicon-edit" aria-hidden="true"></span> Editar
@@ -231,7 +256,7 @@
 							</div>
 						</div>
 
-						<button ng-click="devController.deleteRoom(room._id)" class="btn btn-danger">
+						<button ng-disabled="!user" ng-click="devController.deleteRoom(room._id)" class="btn btn-danger">
 							<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Excluir
 						</button>
 					</div>

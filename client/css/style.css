@@ -11,6 +11,11 @@ body {
 .btn.btn-primary.btn-sm.add_to_circuit {
     margin-bottom: 3px;
 }
+.linkDisabled {
+    cursor: not-allowed;
+    pointer-events: none;
+    color: grey;
+}
 
 img{width:100%;}
 

@@ -33,6 +33,10 @@ var EconomyRule = require('../models/economy_rule');
 var Room = require('../models/room');
 // Measure Model
 var Measure = require('../models/measure');
+// Bring in SystemInfo Model
+let SystemInfo = require('../models/system_info');
+// Bring in User Model
+let User = require('../models/user');
 
 // Socket io Config
 var io = app.io;
@@ -1234,8 +1238,10 @@ router.delete('/hardreset',function(req, res){ // RESET ALL DATA
 	Device.deleteMany({},function(err,response){});
 	Log.deleteMany({},function(err,response){});
 	RfTelemetry.deleteMany({},function(err,response){});
-	Consumption.deleteMany({},function(err,response){});
 	SysLog.deleteMany({},function(err,response){});
+	EconomyRule.deleteMany({},function(err,response){});
+	Measure.deleteMany({},function(err,response){});
+	User.deleteMany({},function(err,response){});
 	res.send("The system has been cleaned!");
 });
 
@@ -1766,10 +1772,11 @@ router.post('/telemetry',function(req,res){
 
 		function updateStats (measureId, deviceId, room) {
 			// write code later to get tariff values from database
-			var standard_tariff = 0.4;
-			var peak_tariff = 1.82*standard_tariff;
-			var intermediate_tariff = 1.15*standard_tariff;
-			var offpeak_tariff = 0.78*standard_tariff;
+			var getSystemInfo = function () {
+				return SystemInfo.findById("system_info").exec(function(err,system_info){
+					return (system_info);
+				});
+			}
 
 			// Consumption total
 			Telemetry.aggregate([
@@ -1790,47 +1797,57 @@ router.post('/telemetry',function(req,res){
 				},function(err){ if (err) console.log(err) });
 			});
 			// Consumption per hour and consumer profile
-			Telemetry.aggregate([
-				{$match:{measureId: measureId}},
-				{$group:{_id:{$hour:"$timestamp"},value:{$sum:"$consumption"}}}
-			]).exec(function(err, consumption){
-				// consumer profile stats calculation
-				let consumption_standard = [];
-				let consumption_peak = [];
-				let consumption_intermediate = [];
-				let consumption_offpeak = [];
-				consumption.forEach(function(hour){
-					consumption_standard.push(hour.value);
-					if (hour._id < 18 || hour._id >= 23) { // peak Period
-						consumption_offpeak.push(hour.value);
-						// console.log("offpeak hour: "+hour._id);
-					}
-					if ((hour._id >= 18 && hour._id < 19) || (hour._id >= 22 && hour._id < 23)) { // intermediate Period
-						consumption_intermediate.push(hour.value);
-						// console.log("intermediate hour: "+hour._id);
-					}
-					if (hour._id >= 19 && hour._id < 22) { // offpeak Period
-						consumption_peak.push(hour.value);
-						// console.log("peak hour: "+hour._id);
-					}
+			getSystemInfo().then(function(system_info){
+				var standard_tariff,peak_tariff,intermediate_tariff,offpeak_tariff;
+				if (!system_info) {
+					standard_tariff = 0.4;
+					peak_tariff = 1.82*standard_tariff;
+					intermediate_tariff = 1.15*standard_tariff;
+					offpeak_tariff = 0.78*standard_tariff;
+				}
+				Telemetry.aggregate([
+					{$match:{measureId: measureId}},
+					{$group:{_id:{$hour:"$timestamp"},value:{$sum:"$consumption"}}}
+				]).exec(function(err, consumption){
+					// consumer profile stats calculation
+					let consumption_standard = [];
+					let consumption_peak = [];
+					let consumption_intermediate = [];
+					let consumption_offpeak = [];
+					consumption.forEach(function(hour){
+						consumption_standard.push(hour.value);
+						if (hour._id < 18 || hour._id >= 23) { // peak Period
+							consumption_offpeak.push(hour.value);
+							// console.log("offpeak hour: "+hour._id);
+						}
+						if ((hour._id >= 18 && hour._id < 19) || (hour._id >= 22 && hour._id < 23)) { // intermediate Period
+							consumption_intermediate.push(hour.value);
+							// console.log("intermediate hour: "+hour._id);
+						}
+						if (hour._id >= 19 && hour._id < 22) { // offpeak Period
+							consumption_peak.push(hour.value);
+							// console.log("peak hour: "+hour._id);
+						}
+					});
+					var standard=0,peak=0,intermediate=0,offpeak=0,standard_best;
+					if (consumption_standard.length > 0) standard = consumption_standard.reduce((previous, current) => current += previous)*system_info.standard_tariff/1000;
+					if (consumption_peak.length > 0) peak = consumption_peak.reduce((previous, current) => current += previous)*system_info.peak_tariff/1000;
+					if (consumption_intermediate.length > 0) intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*system_info.intermediate_tariff/1000;
+					if (consumption_offpeak.length > 0) offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*system_info.offpeak_tariff/1000;
+					if (peak && intermediate && offpeak) standard_best = (peak+intermediate+offpeak) < standard ? false : true;
+	
+					Measure.findByIdAndUpdate(measureId,{
+						consumption_per_hour_total: consumption,
+						cost_for_standard_tariff: standard,
+						cost_for_white_tariff: offpeak+intermediate+peak,
+						cost_offpeak: offpeak,
+						cost_intermediate: intermediate,
+						cost_peak: peak,
+						is_standard_best: standard_best
+					},function(err){ if (err) console.log(err) });
 				});
-				var standard=0,peak=0,intermediate=0,offpeak=0,standard_best;
-				if (consumption_standard.length > 0) standard = consumption_standard.reduce((previous, current) => current += previous)*standard_tariff/1000;
-				if (consumption_peak.length > 0) peak = consumption_peak.reduce((previous, current) => current += previous)*peak_tariff/1000;
-				if (consumption_intermediate.length > 0) intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*intermediate_tariff/1000;
-				if (consumption_offpeak.length > 0) offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*offpeak_tariff/1000;
-				if (peak && intermediate && offpeak) standard_best = (peak+intermediate+offpeak) < standard ? false : true;
-
-				Measure.findByIdAndUpdate(measureId,{
-					consumption_per_hour_total: consumption,
-					cost_for_standard_tariff: standard,
-					cost_for_white_tariff: offpeak+intermediate+peak,
-					cost_offpeak: offpeak,
-					cost_intermediate: intermediate,
-					cost_peak: peak,
-					is_standard_best: standard_best
-				},function(err){ if (err) console.log(err) });
 			});
+			
 			// Consumption per hour for each device
 			function promise(deviceId) {
 				return new Promise (function(resolve, reject){

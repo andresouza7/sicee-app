@@ -59,16 +59,16 @@
 								<span class="glyphicon glyphicon-scale"></span> <label>Corrente</label>
 								<span class="label label-default"> {{item.telemetry.current | number:2}} A </span>
 							</li>
-							<li class="list-group-item device-box" ng-if="usersController.user">
+							<li class="list-group-item device-box">
 								<div class="form-group">
 									<div class="btn-group btn-group-justified">
 										<div class="btn-group">
-											<button ng-click="dashController.turnOn(item._id,item.name)" class="btn btn-success" ng-disabled="!item.connected">
+											<button ng-click="dashController.turnOn(item._id,item.name)" class="btn btn-success" ng-disabled="!user || !item.connected">
 												<span class="glyphicon glyphicon-flash" aria-hidden="true"></span> On
 											</button>
 										</div>
 										<div class="btn-group">
-											<button ng-click="dashController.turnOff(item._id,item.name)" class="btn btn-danger" ng-disabled="!item.connected">
+											<button ng-click="dashController.turnOff(item._id,item.name)" class="btn btn-danger" ng-disabled="!user || !item.connected">
 												<span class="glyphicon glyphicon-off" aria-hidden="true"></span> Off
 											</button>
 										</div>
@@ -95,7 +95,7 @@
 		</div>
 		<div class="col">
 				<div class="table-responsive">
-			<table class="table" ng-init="dashController.searchSchedule()">
+			<table class="table table-striped" ng-init="dashController.searchSchedule()">
 				<thead>
 					<tr>
 						<th scope="col"></th>
@@ -106,9 +106,14 @@
 						<th scope="col">Notificar</th>
 					</tr>
 				</thead>
-				<tbody ng-repeat="item in dashController.schedule_list | orderBy:'nextRunAt'">
-					<tr>
-						<td><a href="" class="delete" ng-click="dashController.user ? dashController.deleteSchedule(item._id) : null"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+				<tbody>
+					<tr ng-repeat="item in dashController.schedule_list | orderBy:'nextRunAt'">
+						<td><a href="" 
+							ng-class="{linkDisabled: !user}" 
+							ng-click="user ? dashController.deleteSchedule(item._id) : null">
+							<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+							</a>
+						</td>
 						<td>
 							<div ng-repeat="device in item.data.devices_list">{{device.name}}</div>
 						</td>
@@ -128,7 +133,7 @@
 				</div> -->
 				<div class="col-xs-6">
 					<!-- <div class="pull-right"> -->
-					<button class="btn btn-primary" type="button" ng-if="dashController.user" data-toggle="collapse" data-target="#collapseSchedule" aria-expanded="false" aria-controls="collapseSchedule">
+					<button class="btn btn-primary" type="button" ng-disabled="!user" data-toggle="collapse" data-target="#collapseSchedule" aria-expanded="false" aria-controls="collapseSchedule">
 					Adicionar
 					</button>
 					<!-- </div> -->
@@ -215,7 +220,7 @@
 									</div>
 								</div>
 							</div>
-							<label><input type="checkbox" ng-model="dashController.sms_checked" ng-disabled="!dashController.user.phone"> Enviar SMS</label><br><br>
+							<label><input type="checkbox" ng-model="dashController.sms_checked" ng-disabled="!user.phone"> Enviar SMS</label><br><br>
 							<!-- <div class="form-group">
 								<label><input type="checkbox" ng-model="day"> Seg</label>
 								<label><input type="checkbox" ng-model="day"> Ter</label>
@@ -269,7 +274,7 @@
 		<div class="container">
 			<div class="row">
 				<div class="col-xs-6">
-					<button class="btn btn-primary" type="button" ng-if="dashController.user" data-toggle="collapse" data-target="#collapseRules" aria-expanded="false" aria-controls="collapseRules">
+					<button class="btn btn-primary" type="button" ng-disabled="!user" data-toggle="collapse" data-target="#collapseRules" aria-expanded="false" aria-controls="collapseRules">
 					Adicionar
 					</button>
 				</div>
@@ -352,9 +357,11 @@
 								<div class="label label-primary">
 									<span class="glyphicon glyphicon-ban-circle"></span> {{rule.start_time | date:'shortTime'}} às {{rule.end_time | date:'shortTime'}}
 								</div>
-								<div class="label label-default">
-									<a href="" ng-click="dashController.deleteEconomyRule(rule._id)">&times;</a>
-								</div>
+								<a href="" 
+									ng-class="{linkDisabled: !user}" 
+									ng-click="dashController.deleteEconomyRule(rule._id)">
+									<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+								</a>
 							</p>
 							</div>
 							<span class="list-group-item device-box" 
@@ -379,7 +386,7 @@
 				</div> -->
 				<div class="col-xs-6">
 					<!-- <div class="pull-right"> -->
-					<button class="btn btn-primary" type="button" ng-if="dashController.user" data-toggle="collapse" data-target="#collapseDevBlock" aria-expanded="false" aria-controls="collapseDevBlock">
+					<button class="btn btn-primary" type="button" ng-disabled="!user" data-toggle="collapse" data-target="#collapseDevBlock" aria-expanded="false" aria-controls="collapseDevBlock">
 					Adicionar
 					</button>
 					<!-- </div> -->
@@ -499,7 +506,7 @@
 	</div>
 </div> -->
 
-<div class="panel panel-default">
+<!-- <div class="panel panel-default">
 		<div class="panel-heading">
 			<h3 class="panel-title">Estatísticas diárias do sistema</h3>
 		</div>
@@ -529,4 +536,4 @@
 		</div>
 	</div>
 
-</div>
+</div> -->

@@ -26,7 +26,7 @@
               <li><a href="#/dashboard"><span class="glyphicon glyphicon-dashboard" aria-hidden="true"></span> Monitoramento</a></li>
               <li><a href="#/statistics"><span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Estatísticas</a></li>
               <li><a href="#/devices"><span class="glyphicon glyphicon-cog" aria-hidden="true"></span> Dispositivos e circuitos</a></li>
-              <li><a href=""><span class="glyphicon glyphicon-book" aria-hidden="true"></span> Documentação</a></li>
+              <!-- <li><a href=""><span class="glyphicon glyphicon-book" aria-hidden="true"></span> Documentação</a></li> -->
             </ul>
             <ul class="nav navbar-nav navbar-right">
               <li ng-if="usersController.user">
@@ -34,7 +34,7 @@
                     <span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{usersController.user.username}}
                   </a>
                 </li>
-              <li ng-if="usersController.user" data-toggle="modal" data-target="#loginScreen" ng-click="usersController.clearCookieData()">
+              <li ng-if="usersController.user" ng-click="usersController.clearCookieData()">
                 <a href="#/">
                   <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Sair
                 </a>
@@ -100,9 +100,9 @@
       <div class="container">
         <hr>
         <p><sup>*</sup> Os valores monetários apresentados referem-se exclusivamente ao consumo dos equipamentos monitorados,
-        nos intervalos de tempo indicados, não considerando tributos ou impostos de qualquer natureza.</p>
-        <p><sup>**</sup> As medições apresentadas tem por objetivo salientar perfis de consumo excessivo de energia e
-        promover a adoção do consumo consciente, não tendo validade para contestação da tarifação da concessionária de energia.</p>
+        nos intervalos de tempo indicados, desconsiderando quaisquer tributos.</p>
+        <p><sup>**</sup> As medições apresentadas tem por objetivo identificar o perfil do consumidor e
+        promover a adoção do consumo consciente, não tendo validade para contestação da tarifação de energia.</p>
         <hr>
       <div class="panel">
         <div class="row">

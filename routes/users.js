@@ -5,6 +5,38 @@ const passport = require('passport');
 
 // Bring in User Model
 let User = require('../models/user');
+// Bring in SystemInfo Model
+let SystemInfo = require('../models/system_info');
+
+// get users
+router.get('/',function(req,res){
+  User.find({},{name:1,email:1,phone:1,_id:0},function(err,users){
+    res.json(users);
+  });
+});
+
+// update system info for logged user
+router.post('/system_info',function(req,res){
+  let data = req.body;
+  if (data){
+    let system_info = new SystemInfo();
+    system_info.standard_tariff = data.standard_tariff;
+    system_info.offpeak_tariff = data.offpeak_tariff;
+    system_info.intermediate_tariff = data.intermediate_tariff;
+    system_info.peak_tariff = data.peak_tariff;
+    SystemInfo.update({_id: system_info._id},system_info,{upsert:true}, function(err, response){
+      if (err) console.log(err);
+      res.sendStatus(200);
+    });
+  } else res.sendStatus(400);
+});
+
+// get system info for logged user
+router.get('/system_info',function(req,res){
+  SystemInfo.findById("system_info",function(err,system_info){
+    res.json(system_info);
+  });
+});
 
 // Update user password
 router.post('/password', function(req,res){
@@ -88,7 +120,8 @@ router.post('/register', function(req, res){
                 res.send(500);
                 return;
               } else {
-                res.send(req.newUser);
+                res.json(newUser);
+                console.log(newUser);
               }
             });
           });

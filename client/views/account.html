@@ -3,16 +3,18 @@
     <div class="col-md-6 col-md-offset-3">
 <div class="panel panel-default" ng-if="!usersController.user">
   <div class="panel-heading">
-    <h3 class="panel-title">Dados do usuário</h3>
+    <h3 class="panel-title">Nova conta</h3>
   </div>
   <div class="panel-body" ng-init="usersController.getCookieData()">
+      <form name="addUserForm" ng-submit="usersController.register()">
     <div class="row">
       <div class="col-md-12">
-        <form name="addUserForm" ng-submit="usersController.register()">
-          <div ng-repeat="error in usersController.errors">
-            <div class="alert alert-danger" role="alert">{{error.msg}}</div>
-            <div class="alert alert-success" role="alert" ng-if="usersController.new_user.registered">Cadastro realizado com sucesso</div>
-          </div>
+        <div ng-repeat="error in usersController.errors">
+          <div class="alert alert-danger" role="alert">{{error.msg}}</div>
+          <div class="alert alert-success" role="alert" ng-if="usersController.new_user.registered">Cadastro realizado com sucesso</div>
+        </div>
+        <div class="col-md-6">
+          <h4>Dados pessoais</h4>
           <div class="form-group">
             <label>Nome <sup>*</sup></label>
             <input type="text" class="form-control" ng-model="usersController.new_user.name" placeholder="Nome" required>
@@ -29,8 +31,9 @@
             <label>Confirmar senha <sup>*</sup></label>
             <input type="password" class="form-control" ng-model="usersController.new_user.password2" placeholder="******" required>
           </div>
-          <hr>
-          <p><label>Contatos para notificações</label></p>
+        </div>
+        <div class="col-md-6">
+          <h4>Contatos para notificações</h4>
           <div class="form-group">
             <label>Email</label>
             <input type="text" class="form-control" ng-model="usersController.new_user.email" placeholder="bob@sicee.iot">
@@ -39,14 +42,18 @@
             <label>Telefone</label>
             <input type="text" class="form-control" ng-model="usersController.new_user.phone" placeholder="+55DD9AAAABBBB">
           </div>
-          <button type="submit" class="btn btn-default" ng-disabled="addUserForm.$invalid" href="/#/account">Registrar-se</button>
-        </form>
+          <div class="tips">(Opcionais)</div>
+        </div>
       </div>
     </div>
+    <hr>
+    <button type="submit" class="btn btn-default" ng-disabled="addUserForm.$invalid">Registrar-se</button>
+  </form>
+
   </div>
 </div>
 
-<!-- </div> -->
+</div>
 </div>
 </div>
 
@@ -54,117 +61,143 @@
   
 <div class="panel panel-default" ng-if="usersController.user">
   <div class="panel-heading">
-    <h3 class="panel-title">Dados pessoais</h3>
+    <h3 class="panel-title">Usuários cadastrados</h3>
   </div>
-  <div class="panel-body" ng-init="usersController.getCookieData()">
+  
+  <div class="panel-body" ng-init="usersController.getUsersList()">
     <div class="row">
-      <div class="col-md-12">
-        <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-              <tr>
-                <th scope="col">Nome</th>
-                <th scope="col">Email</th>
-                <th scope="col">Telefone</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{{::usersController.user.username}}</td>
-                <td>{{::usersController.user.email}}</td>
-                <td>{{::usersController.user.phone}}</td>
-              </tr>
-              <tr>
-            </tbody>
-          </table>
+      <div ng-repeat="item in usersController.users_list | orderBy:'item.name'">
+        <div class="col-sm-4">
+          <div ng-class="item.name==usersController.user.name ? 'panel panel-primary' : 'panel panel-default'">
+            <div class="panel-heading device-box text-center">
+              <label class="panel-title">{{item.name | uppercase}}</label>
+              <div class="tips" ng-if="usersController.user.name==item.name">
+                <span class="glyphicon glyphicon-wrench"></span> 
+                <a href="" 
+                style="color:white"
+                ng-click="usersController.togglePersonalDataForm = true; usersController.togglePasswordForm = false">
+                 Alterar contatos</a> | 
+                <a href="" 
+                style="color:white"
+                ng-click="usersController.togglePasswordForm = true; usersController.togglePersonalDataForm = false">
+                 Alterar senha</a>
+              </div>
+            </div>
+          <div class="panel-body device-box">
+          <ul class="list-group device-box">
+              <li class="list-group-item device-box">
+                <span class="glyphicon glyphicon-envelope"></span> <label>Email: </label>
+                {{item.email}}
+              </li>
+              <li class="list-group-item device-box">
+                <span class="glyphicon glyphicon-comment"></span> <label>Telefone: </label>
+                {{item.phone}}
+              </li>
+            </ul>
+          </div>
         </div>
-        <div class="col-md-6">
-        <form name="personalDataForm" ng-if="usersController.togglePasswordForm" ng-submit="usersController.updateUserPassword()"> 
-          <p><span class="label label-success">Dados de acesso</span></p>
-          <div class="form-group">
-            <label>Usuário </label>
-            <input type="text" class="form-control" ng-model="usersController.user.username" disabled="true">
-          </div>
-          <div class="form-group">
-            <label>Senha <sup>*</sup></label>
-            <input type="text" class="form-control" ng-model="usersController.user.password" placeholder="nova senha" required>
-          </div>
-          <div class="form-group">
-            <button type="submit" class="btn btn-default" ng-disabled="passwordForm.$invalid">Confirmar</button>
-            <button type="submit" class="btn btn-default" ng-if="usersController.togglePersonalDataForm || usersController.togglePasswordForm" 
-            ng-click="usersController.togglePersonalDataForm = false; usersController.togglePasswordForm = false">Cancelar</button>
-          </div>
-        </form>
-
-        <form name="passwordForm" ng-if="usersController.togglePersonalDataForm" ng-submit="usersController.updateUserData()"> 
-          <p><span class="label label-primary">Dados do usuário</span></p>
-          <div class="form-group">
-            <label>Nome</label>
-            <input type="text" class="form-control" ng-model="usersController.user.name">
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="text" class="form-control" ng-model="usersController.user.email">
-          </div>
-          <div class="form-group">
-            <label>Telefone</label>
-            <input type="text" class="form-control" ng-model="usersController.user.phone">
-          </div>
-          <div class="form-group">
-            <button type="submit" class="btn btn-default" ng-disabled="passwordForm.$invalid">Confirmar</button>
-            <button type="submit" class="btn btn-default" ng-if="usersController.togglePersonalDataForm || usersController.togglePasswordForm" 
-            ng-click="usersController.togglePersonalDataForm = false; usersController.togglePasswordForm = false">Cancelar</button>
-          </div>
-        </form>
-      
-        <button type="submit" class="btn btn-default" ng-model="edit" ng-if="!usersController.togglePersonalDataForm && !usersController.togglePasswordForm"
-        ng-click="usersController.togglePersonalDataForm = true; usersController.togglePasswordForm = false">Alterar dados</button>
-        <button type="submit" class="btn btn-default" ng-model="edit" ng-if="!usersController.togglePersonalDataForm && !usersController.togglePasswordForm"
-        ng-click="usersController.togglePasswordForm = true; usersController.togglePersonalDataForm = false">Mudar senha</button>
-        <button type="button" class="btn btn-danger" ng-click="usersController.hardreset()">Resetar Sistema</button>
-        
-      </div>
       </div>
     </div>
+    </div>
+    <div class="col-md-6">
+      <form name="personalDataForm" ng-if="usersController.togglePasswordForm" ng-submit="usersController.updateUserPassword()"> 
+        <p><span class="label label-success">Dados de acesso</span></p>
+        <div class="form-group">
+          <label>Usuário </label>
+          <input type="text" class="form-control" ng-model="usersController.user.username" disabled="true">
+        </div>
+        <div class="form-group">
+          <label>Senha <sup>*</sup></label>
+          <input type="text" class="form-control" ng-model="usersController.user.password" placeholder="nova senha" required>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-default" ng-disabled="passwordForm.$invalid">Confirmar</button>
+          <button type="submit" class="btn btn-default" ng-if="usersController.togglePersonalDataForm || usersController.togglePasswordForm" 
+          ng-click="usersController.togglePersonalDataForm = false; usersController.togglePasswordForm = false">Cancelar</button>
+        </div>
+      </form>
+
+      <form name="passwordForm" ng-if="usersController.togglePersonalDataForm" ng-submit="usersController.updateUserData()"> 
+        <p><span class="label label-primary">Dados do usuário</span></p>
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" class="form-control" ng-model="usersController.user.name">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="text" class="form-control" ng-model="usersController.user.email">
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="text" class="form-control" ng-model="usersController.user.phone">
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-default" ng-disabled="passwordForm.$invalid">Confirmar</button>
+          <button type="submit" class="btn btn-default" ng-if="usersController.togglePersonalDataForm || usersController.togglePasswordForm" 
+          ng-click="usersController.togglePersonalDataForm = false; usersController.togglePasswordForm = false">Cancelar</button>
+        </div>
+      </form>
+      
+    </div>
   </div>
+
 </div>
 </div>
 
 <div ng-controller="UsersController as usersController" ng-init="usersController.getCookieData()">
-<div class="panel panel-default" ng-if="usersController.user">
-<div class="panel-heading">
-  <h3 class="panel-title">Alarmes programados</h3>
-</div>
-<div class="panel-body" ng-init="usersController.getCookieData()">
-  <div class="row">
-    <div class="col-md-12">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th scope="col">Dispositivo</th>
-            <th scope="col">Condição</th>
-            <th scope="col">Tipo</th>
-            <th scope="col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Todos</td>
-            <td>Consumo > 50kwh no mês</td>
-            <td>SMS</td>
-            <td><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></td>
-          </tr>
-          <tr>
-            <td>Todos</td>
-            <td>Corrente > 10 A</td>
-            <td>SMS</td>
-            <td><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></td>
-          </tr>
-          <tr>
-        </tbody>
-      </table>
+  <div class="panel panel-default" ng-if="usersController.user">
+    <div class="panel-heading">
+      <h3 class="panel-title">Configurações do sistema</h3>
     </div>
+    <div class="panel-body" ng-init="usersController.getUsersList()">
+      <p><span class="glyphicon glyphicon-info-sign"></span> 
+      Consulse as <a target="_blank"
+      href="http://www.aneel.gov.br/ranking-das-tarifas">tarifas</a>
+      e <a target="_blank"
+      href="http://www.aneel.gov.br/alta-tensao/-/asset_publisher/zNaRBjCLDgbE/content/alta-tensao/654800?inheritRedirect=false&redirect=http%3A%2F%2Fwww.aneel.gov.br%2Falta-tensao%3Fp_p_id%3D101_INSTANCE_zNaRBjCLDgbE%26p_p_lifecycle%3D0%26p_p_state%3Dnormal%26p_p_mode%3Dview%26p_p_col_id%3Dcolumn-2%26p_p_col_pos%3D2%26p_p_col_count%3D3">
+        postos tarifários</a>
+      no site da ANEEL.
+      
+      <form name="systemInfoForm" ng-submit="usersController.edit_system_info()">
+        <div class="row" ng-init="usersController.system_info; usersController.get_system_info()">
+          <div class="col-md-6">
+            <div>
+              <span class="glyphicon glyphicon-flag"></span> <label>Tarifa convencional:</label> {{::usersController.system_info.standard_tariff | currency:'R$ ':5}}
+              <p><input ng-if="edit_system_info" type="number" class="form-control" min="0" step="0.00001"
+                ng-model="usersController.system_info.standard_tariff"></p>
+            </div>
+            <!-- <div>
+              <span class="glyphicon glyphicon-time"></span> <label>Horário de ponta:</label> {{::usersController.system_info.peak_period}} 
+              <p><input ng-if="edit_system_info" type="number" class="form-control" min="0" max="23"
+                ng-model="usersController.system_info.peak_period"></p>
+            </div> -->
+            <div>
+              <span class="glyphicon glyphicon-flag"></span> <label>Tarifa branca ponta:</label> {{::usersController.system_info.peak_tariff | currency:'R$ ':5}} 
+              <p><input ng-if="edit_system_info" type="number" class="form-control" min="0" step="0.00001"
+                ng-model="usersController.system_info.peak_tariff"></p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div>
+                <span class="glyphicon glyphicon-flag"></span> <label>Tarifa h. intermediário:</label> {{::usersController.system_info.intermediate_tariff | currency:'R$ ':5}} 
+                <p><input ng-if="edit_system_info" type="number" class="form-control" min="0" step="0.00001"
+                  ng-model="usersController.system_info.intermediate_tariff"></p>
+              </div>
+            <div>
+              <span class="glyphicon glyphicon-flag"></span> <label>Tarifa h. fora de ponta:</label> {{::usersController.system_info.offpeak_tariff | currency:'R$ ':5}} 
+              <p><input ng-if="edit_system_info" type="number" class="form-control" min="0" step="0.00001"
+                ng-model="usersController.system_info.offpeak_tariff"></p>
+          </div>
+        </div>
+        </div>
+        <button type="submit" class="btn btn-primary" ng-if="edit_system_info">Confirmar</button>
+        <hr>
+        <button type="button" 
+          class="btn btn-default" 
+          ng-click="edit_system_info ? edit_system_info=false : edit_system_info=true">
+          Alterar dados</button>
+        <button type="button" class="btn btn-danger" ng-click="usersController.hardreset()">Resetar Sistema</button>
+        </form>
+      </div>
   </div>
-</div>
-</div>
 </div>

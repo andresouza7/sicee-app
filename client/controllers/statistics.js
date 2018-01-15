@@ -49,7 +49,7 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 			var labels = [];
 			for (let hour=0; hour<=23; hour++){
 				let bin = hour+1;
-				labels.push(hour+"-"+bin+"h");
+				labels.push(hour+"h");
 				// Fill in series for total consumption
 				let generalPointExists = false;
 				apiDataPointsGeneral.forEach(function (item, index) {

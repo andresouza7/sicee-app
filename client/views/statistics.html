@@ -1,22 +1,25 @@
 <div class="statisticsPage" ng-controller="StatisticsController as statsController">
     <div class="well" ng-init="statsController.getMeasureId()">
         <h4>Medição de consumo</h4>
-        <div>
-            <div>ID: {{statsController.measureId}}</div>
-            <div>Circuito: {{statsController.measure.room}}</div>
-            <div>Progresso: {{statsController.measure.progress}} %</div>
-            <div class="progress">
-            <div class="progress-bar progress-bar-success" 
-            role="progressbar" 
-            aria-valuenow="{{statsController.measure.progress}}" 
-            aria-valuemin="10" 
-            aria-valuemax="100" 
-            ng-style="{width : ( statsController.measure.progress + '%' ) }">
+        <div class="row">
+            <div class="col-md-6">
+                <div><label>Circuito:</label> {{statsController.measure.room}}</div>
+                <div><label>Progresso:</label> {{statsController.measure.progress}} %</div>
             </div>
+            <div class="col-md-6">
+                <div><label>Início:</label> {{statsController.measure.period_start | date:'medium'}} </div>
+                <div><label>Término:</label> {{statsController.measure.period_end | date:'medium'}} </div>
             </div>
-            <div>Início: {{statsController.measure.period_start | date:'medium'}} </div>
-            <div>Término: {{statsController.measure.period_end | date:'medium'}} </div>
         </div>
+        <div class="progress">
+                <div class="progress-bar progress-bar-success" 
+                role="progressbar" 
+                aria-valuenow="{{statsController.measure.progress}}" 
+                aria-valuemin="10" 
+                aria-valuemax="100" 
+                ng-style="{width : ( statsController.measure.progress + '%' ) }">
+                </div>
+                </div>
     </div>
     <div class="panel panel-default" ng-init="statsController.getConsumptionPerHourMonthly()">
         <div class="panel-heading">
@@ -24,14 +27,14 @@
                 <!-- <tt>option = {{selectedOptionDay | json}}</tt><br/> -->
         </div>
         <div class="panel-body">
-            <div class="text-center">
+            <!-- <div class="text-center">
                 Ano <select ng-options="option.year for option in statsController.range"
                 ng-model="selectedOptionYear"></select> Mês <select
                 ng-options="b.month for b in selectedOptionYear.months"
                 ng-change="statsController.getConsumptionPerDay(); statsController.getConsumptionPerHourMonthly()"
                 ng-model="selectedOptionMonth">
                 </select>
-            </div>
+            </div> -->
             <div class="col-md-6" ng-init="statsController.getConsumptionPerDay()">
                 <div class="row">
                     <h5 class="text-center">Consumo por dia (Wh)</h5>
@@ -40,12 +43,17 @@
                     </div>
                 </div>
                 <hr>
-                <p>ESTATÍSTICAS E PREVISÕES</p>
-                <div>Média diária: {{statsController.avg | number:2}} Wh</div>
-                <div>Consumo acumulado no mês: {{statsController.consMonth | number:2}} Wh | {{statsController.consMonth/1000 | number:2}} kWh</div>
-                <div>Despesa acumulada: {{statsController.consMonth*0.4/1000 | currency:'R$'}}</div>
-                <div>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</div>
-                <div>Previsão de despesa: {{statsController.monthPrediction*0.4/1000 | currency:'R$'}}</div>
+                <h4>ESTATÍSTICAS E PREVISÕES</h4>
+                <div><span class="glyphicon glyphicon-info-sign"></span> 
+                    Média diária: {{statsController.avg | number:2}} Wh</div>
+                <div><span class="glyphicon glyphicon-info-sign"></span> 
+                    Consumo acumulado no mês: {{statsController.consMonth | number:2}} Wh | {{statsController.consMonth/1000 | number:2}} kWh</div>
+                <div><span class="glyphicon glyphicon-info-sign"></span> 
+                    Despesa acumulada: {{statsController.consMonth*0.4/1000 | currency:'R$'}}</div>
+                <div><span class="glyphicon glyphicon-info-sign"></span> 
+                    Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</div>
+                <div><span class="glyphicon glyphicon-info-sign"></span> 
+                    Previsão de despesa: {{statsController.monthPrediction*0.4/1000 | currency:'R$'}}</div>
             </div>
             <div class="col-md-6">
                 <div class="row">
@@ -55,21 +63,24 @@
                     </div>
                 </div>
                 <hr>
-                <p>ANÁLISE DE PERFIL</p>
-                <div>Despesa na tarifa convencional: {{statsController.measure.cost_for_standard_tariff | currency:'R$'}}</div>
-                <div>Despesa na tarifa branca: {{statsController.measure.cost_for_white_tariff | currency:'R$'}}</div>
+                <h4>ANÁLISE DE PERFIL</h4>
+                <div><span class="glyphicon glyphicon-usd"></span> 
+                    Despesa na tarifa convencional: {{statsController.measure.cost_for_standard_tariff | currency:'R$'}}</div>
+                <div><span class="glyphicon glyphicon-usd"></span> 
+                    Despesa na tarifa branca: {{statsController.measure.cost_for_white_tariff | currency:'R$'}}</div>
                 <ol>
-                    <li>Fora de ponta {{statsController.measure.cost_offpeak | currency:'R$'}}</li>
-                    <li>Intermediário {{statsController.measure.cost_intermediate | currency:'R$'}}</li>
-                    <li>Ponta {{statsController.measure.cost_peak | currency:'R$'}}</li>
+                    <li><span class="glyphicon glyphicon-flag"></span> Fora de ponta {{statsController.measure.cost_offpeak | currency:'R$'}}</li>
+                    <li><span class="glyphicon glyphicon-flag"></span> Intermediário {{statsController.measure.cost_intermediate | currency:'R$'}}</li>
+                    <li><span class="glyphicon glyphicon-flag"></span> Ponta {{statsController.measure.cost_peak | currency:'R$'}}</li>
                 </ol>
-                <div>Maior vantagem: {{statsController.measure.is_standard_best ? 'Tarifa convencional' : 'Tarifa branca'}}</div>
+                <div><span class="glyphicon glyphicon-bookmark"></span> 
+                    Maior vantagem: {{statsController.measure.is_standard_best ? 'Tarifa convencional' : 'Tarifa branca'}}</div>
             </div>
         </div>
     </div>
 
 
-    <div class="panel panel-default">
+    <!-- <div class="panel panel-default">
         <div class="panel-heading" ng-init="statsController.getRange(); selectedOptionDay">
             <div>
             <h3 class="panel-title">
@@ -105,6 +116,6 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 </div>
     

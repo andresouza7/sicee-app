@@ -96,6 +96,12 @@ myApp.factory("room",function($http,$q,$rootScope) {
 		}
 	}
 });
+myApp.factory("user",function($http,$q,$rootScope,$cookies) {
+	return {
+		getUser: function() {return $cookies.getObject("user_account");
+		}
+	}
+});
 
 myApp.config(function($routeProvider){
 	$routeProvider.when('/', {
