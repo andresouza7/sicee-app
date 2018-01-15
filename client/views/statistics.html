@@ -1,90 +1,110 @@
 <div class="statisticsPage" ng-controller="StatisticsController as statsController">
-	<div class="panel panel-default" ng-init="statsController.getRange()">
-		<div class="panel-heading">
-			<h3 class="panel-title">Estatísticas mensais</h3>
-				<!-- <tt>option = {{selectedOptionDay | json}}</tt><br/> -->
-		</div>
-		<div class="panel-body">
-			<div class="text-center">
-				Ano <select ng-options="option.year for option in statsController.range"
-				ng-model="selectedOptionYear"></select> Mês <select
-				ng-options="b.month for b in selectedOptionYear.months"
-				ng-change="statsController.getConsumptionPerDay(); statsController.getConsumptionPerHourMonthly()"
-				ng-model="selectedOptionMonth">
-				</select>
-			</div>
-			<div class="col-md-6" ng-init="statsController.getConsumptionPerDay()">
-				<div class="row">
-					<h5 class="text-center">Consumo por dia</h5>
-					<div class="charjs-size-monitor">
-						<canvas id="dailyConsumptionChart"></canvas>
-					</div>
-				</div>
-				<hr>
-				<p>ESTATÍSTICAS E PREVISÕES</p>
-				<div>Média diária: {{statsController.avg | number:2}} Wh</div>
-				<div>Consumo acumulado no mês: {{statsController.consMonth | number:2}} Wh | {{statsController.consMonth/1000 | number:2}} kWh</div>
-				<div>Despesa acumulada: {{statsController.consMonth*0.4/1000 | currency:'R$'}}</div>
-				<div>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</div>
-				<div>Previsão de despesa: {{statsController.monthPrediction*0.4/1000 | currency:'R$'}}</div>
-			</div>
-			<div class="col-md-6" ng-init="statsController.getConsumptionPerHourMonthly()">
-				<div class="row">
-					<h5 class="text-center">Consumo por hora</h5>
-					<div class="charjs-size-monitor">
-						<canvas id="hourlyConsumptionChartForMonth"></canvas>
-					</div>
-				</div>
-				<hr>
-				<p>ANÁLISE DE PERFIL</p>
-				<div>Despesa na tarifa convencional: {{statsController.bill_stats.standard | currency:'R$'}}</div>
-				<div>Despesa na tarifa branca: {{statsController.bill_stats.white | currency:'R$'}}</div>
-				<ol>
-					<li>Fora de ponta {{statsController.bill_stats.offpeak | currency:'R$'}}</li>
-					<li>Intermediário {{statsController.bill_stats.intermediate | currency:'R$'}}</li>
-					<li>Ponta {{statsController.bill_stats.peak | currency:'R$'}}</li>
-				</ol>
-				<div>Maior vantagem: {{standard_best ? 'Tarifa convencional' : 'Tarifa branca'}}</div>
-			</div>
-		</div>
-	</div>
+    <div class="well" ng-init="statsController.getMeasureId()">
+        <h4>Medição de consumo</h4>
+        <div>
+            <div>ID: {{statsController.measureId}}</div>
+            <div>Circuito: {{statsController.measure.room}}</div>
+            <div>Progresso: {{statsController.measure.progress}} %</div>
+            <div class="progress">
+            <div class="progress-bar progress-bar-success" 
+            role="progressbar" 
+            aria-valuenow="{{statsController.measure.progress}}" 
+            aria-valuemin="10" 
+            aria-valuemax="100" 
+            ng-style="{width : ( statsController.measure.progress + '%' ) }">
+            </div>
+            </div>
+            <div>Início: {{statsController.measure.period_start | date:'medium'}} </div>
+            <div>Término: {{statsController.measure.period_end | date:'medium'}} </div>
+        </div>
+    </div>
+    <div class="panel panel-default" ng-init="statsController.getConsumptionPerHourMonthly()">
+        <div class="panel-heading">
+            <h3 class="panel-title">Estatísticas mensais</h3>
+                <!-- <tt>option = {{selectedOptionDay | json}}</tt><br/> -->
+        </div>
+        <div class="panel-body">
+            <div class="text-center">
+                Ano <select ng-options="option.year for option in statsController.range"
+                ng-model="selectedOptionYear"></select> Mês <select
+                ng-options="b.month for b in selectedOptionYear.months"
+                ng-change="statsController.getConsumptionPerDay(); statsController.getConsumptionPerHourMonthly()"
+                ng-model="selectedOptionMonth">
+                </select>
+            </div>
+            <div class="col-md-6" ng-init="statsController.getConsumptionPerDay()">
+                <div class="row">
+                    <h5 class="text-center">Consumo por dia (Wh)</h5>
+                    <div class="charjs-size-monitor">
+                        <canvas id="dailyConsumptionChart"></canvas>
+                    </div>
+                </div>
+                <hr>
+                <p>ESTATÍSTICAS E PREVISÕES</p>
+                <div>Média diária: {{statsController.avg | number:2}} Wh</div>
+                <div>Consumo acumulado no mês: {{statsController.consMonth | number:2}} Wh | {{statsController.consMonth/1000 | number:2}} kWh</div>
+                <div>Despesa acumulada: {{statsController.consMonth*0.4/1000 | currency:'R$'}}</div>
+                <div>Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</div>
+                <div>Previsão de despesa: {{statsController.monthPrediction*0.4/1000 | currency:'R$'}}</div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <h5 class="text-center">Consumo por hora (Wh)</h5>
+                    <div class="charjs-size-monitor">
+                        <canvas id="hourlyConsumptionChartForMonth"></canvas>
+                    </div>
+                </div>
+                <hr>
+                <p>ANÁLISE DE PERFIL</p>
+                <div>Despesa na tarifa convencional: {{statsController.measure.cost_for_standard_tariff | currency:'R$'}}</div>
+                <div>Despesa na tarifa branca: {{statsController.measure.cost_for_white_tariff | currency:'R$'}}</div>
+                <ol>
+                    <li>Fora de ponta {{statsController.measure.cost_offpeak | currency:'R$'}}</li>
+                    <li>Intermediário {{statsController.measure.cost_intermediate | currency:'R$'}}</li>
+                    <li>Ponta {{statsController.measure.cost_peak | currency:'R$'}}</li>
+                </ol>
+                <div>Maior vantagem: {{statsController.measure.is_standard_best ? 'Tarifa convencional' : 'Tarifa branca'}}</div>
+            </div>
+        </div>
+    </div>
 
 
-	<div class="panel panel-default">
-		<div class="panel-heading" ng-init="statsController.getRange(); selectedOptionDay">
-			<div ng-controller="DashboardController as dashController">
-			<h3 class="panel-title">
-				Estatísticas do dia ({{dashController.getLocalDate().timestamp | date:'dd/MM/yy'}})</h3>
-			</div>
-		</div>
-		<div class="panel-body">
-			<div class="col-md-6" ng-init="statsController.getConsumptionPerHour()">
-				<div class="row">
-				<h5 class="text-center">Consumo por hora</h5>
-				<div class="charjs-size-monitor">
-					<canvas id="hourlyConsumptionChart"></canvas>
-				</div>
-				</div>
-				<hr>
-				<p><strong>Horários de maior consumo</strong></p>
-				<ul class="list-group device-box" ng-repeat="item in statsController.excess_consumption | orderBy:'_id'">
-					<li class="list-group-item device-box">hora: {{item._id}} h, consumo: {{item.total | number:1}} Wh</li>
-				</ul>
-			</div>
+    <div class="panel panel-default">
+        <div class="panel-heading" ng-init="statsController.getRange(); selectedOptionDay">
+            <div>
+            <h3 class="panel-title">
+                Estatísticas do dia</h3>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="col-md-6" ng-init="statsController.getConsumptionPerHour()">
+                <div class="row">
+                <h5 class="text-center">Consumo por hora</h5>
+                <div class="charjs-size-monitor">
+                    <canvas id="hourlyConsumptionChart"></canvas>
+                </div>
+                </div>
+                <hr>
+                <p><strong>Horários de maior consumo</strong></p>
+                <ul class="list-group device-box" ng-repeat="item in statsController.excess_consumption | orderBy:'_id'">
+                    <li class="list-group-item device-box">hora: {{item._id}} h, consumo: {{item.total | number:1}} Wh</li>
+                </ul>
+            </div>
 
-			<div class="col-md-6" ng-init="statsController.getConsumptionPerDevice(); statsController.getUsagePerDay()">
-				<div class="row">
-					<h5 class="text-center">Consumo por dispositivo</h5>
-					<div class="charjs-size-monitor">
-						<canvas id="deviceConsumptionChart"></canvas>
-					</div>
-				</div>
-				<hr>
-				<p>Horas de funcionamento hoje</p>
-				<div ng-repeat="device in statsController.usagePerDay">
-					<div>{{device.name | uppercase}} : {{device.usage | number:2}} h</div>
-				</div>
-			</div>
-		</div>
-	</div>
+            <div class="col-md-6" ng-init="statsController.getConsumptionPerDevice(); statsController.getUsagePerDay()">
+                <div class="row">
+                    <h5 class="text-center">Consumo por dispositivo</h5>
+                    <div class="charjs-size-monitor">
+                        <canvas id="deviceConsumptionChart"></canvas>
+                    </div>
+                </div>
+                <hr>
+                <p>Horas de funcionamento hoje</p>
+                <div ng-repeat="device in statsController.usagePerDay">
+                    <div>{{device.name | uppercase}} : {{device.usage | number:2}} h</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+    

@@ -1,8 +1,8 @@
 <div ng-controller="DashboardController as dashController" ng-init="dashController.getTelemetry()">
 <div ng-init="dashController.checkConnection()">
 <div ng-class="dashController.connectionStatus ? 'alert alert-success text-center' : 'alert alert-danger text-center'" role="alert">
-	<span ng-class="dashController.connectionStatus ? 'glyphicon glyphicon-signal' : 'glyphicon glyphicon-warning-sign'" aria-hidden="true"></span> 
-	<label>{{dashController.connectionStatus ? 'SISTEMA ONLINE' : 'SISTEMA OFFLINE, aguardando conexão...'}}</label>
+	<span ng-class="dashController.connectionStatus ? 'glyphicon glyphicon-globe' : 'glyphicon glyphicon-warning-sign'" aria-hidden="true"></span> 
+	<label>{{dashController.connectionStatus ? 'GATEWAY CONECTADO' : 'GATEWAY DESCONECTADO, aguardando conexão...'}}</label>
 	<!-- <button type="button" ng-click="log.register('{}')">log</button> -->
 </div>
 </div>
@@ -17,30 +17,48 @@
 					<div class="panel panel-default">
 						<div class="panel-heading device-box text-center">
 							<label class="panel-title">{{item.name | uppercase}}</label>
+							<div class="tips">
+								<span class="glyphicon glyphicon-time"></span> 
+								{{(item.telemetry.timestamp ? item.telemetry.timestamp : 'Indisponível') | date:'medium' : 'UTC'}}
+							</div>
 						</div>
 					<div class="panel-body device-box">
 					<!-- <h4>{{item.name}}</h4> -->
 					<ul class="list-group device-box">
-							<li class="list-group-item device-box"><label>Ambiente</label>
+							<li class="list-group-item device-box">
+								<span class="glyphicon glyphicon-home"></span> <label>Circuito</label>
 								<span class="label label-primary"> {{item.roomName ? item.roomName : 'nenhum'}} </span>
 							</li>
-							<li class="list-group-item device-box" ng-if="item.connected"><label>Rádio</label> <span class="label label-success">conectado</span></li>
-							<li class="list-group-item device-box" ng-if="!item.connected"><label>Rádio</label> <span class="label label-warning">sem sinal</span></li>
-							<!-- <li class="list-group-item device-box"><label>Radiofrequência</label> {{ item.telemetry ? "com sinal" : "sem sinal" }}</li> -->
+							<li class="list-group-item device-box" ng-if="item.connected">
+								<span class="glyphicon glyphicon-signal"></span> 
+								<label>Rádio</label> <span class="label label-success">conectado</span>
+							</li>
+							<li class="list-group-item device-box" ng-if="!item.connected">
+								<span class="glyphicon glyphicon-signal"></span> 
+								<label>Rádio</label> <span class="label label-warning">sem sinal</span>
+							</li>
 							<div ng-switch="item.current_state">
-								<li class="list-group-item device-box" ng-switch-when="on"><label>Relé</label> <span class="label label-success">{{item.current_state}}</span></li>
-								<li class="list-group-item device-box" ng-switch-when="off"><label>Relé</label> <span class="label label-danger">{{item.current_state}}</span></li>
+								<li class="list-group-item device-box" ng-switch-when="on">
+									<span class="glyphicon glyphicon-lamp"></span> 
+									<label>Estado</label> <span class="label label-success">{{item.current_state}}</span>
+								</li>
+								<li class="list-group-item device-box" ng-switch-when="off">
+									<span class="glyphicon glyphicon-lamp"></span> 
+									<label>Estado</label> <span class="label label-danger">{{item.current_state}}</span>
+								</li>
 							</div>
-							<li class="list-group-item device-box"><label>Potência</label>
-								<span class="label label-default"> {{item.telemetry.power | number:2}} W </span>
+							<li class="list-group-item device-box">
+								<span class="glyphicon glyphicon-scale"></span> <label>Potência</label>
+								<span class="label label-default"> {{item.telemetry.power | number:1}} W </span>
 							</li>
-							<li class="list-group-item device-box"><label>Tensão</label>
-								<span class="label label-default"> {{item.telemetry.voltage | number:2}} V </span>
+							<li class="list-group-item device-box">
+								<span class="glyphicon glyphicon-scale"></span> <label>Tensão</label>
+								<span class="label label-default"> {{item.telemetry.voltage | number:1}} V </span>
 							</li>
-							<li class="list-group-item device-box"><label>Corrente</label>
+							<li class="list-group-item device-box">
+								<span class="glyphicon glyphicon-scale"></span> <label>Corrente</label>
 								<span class="label label-default"> {{item.telemetry.current | number:2}} A </span>
 							</li>
-							<li class="list-group-item device-box"><label>Último log</label> {{item.telemetry.timestamp | date:'HH:mm:ss' : 'UTC'}}</li>
 							<li class="list-group-item device-box" ng-if="usersController.user">
 								<div class="form-group">
 									<div class="btn-group btn-group-justified">
@@ -71,6 +89,9 @@
 <div class="panel panel-default">
 		<div class="panel-heading">
 			<h3 class="panel-title">Automação por horário</h3>
+		</div>
+		<div class="panel-body"><span class="glyphicon glyphicon-info-sign"></span>
+			Utilize o timer para automatizar determinados aparelhos.  
 		</div>
 		<div class="col">
 				<div class="table-responsive">
@@ -316,6 +337,7 @@
 		<h3 class="panel-title">Bloqueio de equipamentos</h3>
 	</div>
 	<div class="panel-body">
+		<p><span class="glyphicon glyphicon-info-sign"></span> Evite o uso de aparelhos de grande potência em determinados horários para reduzir o consumo de energia.</p>
 		<div class="row">
 			<div ng-repeat="item in dashController.economyRules">
 				<div class="col-sm-4">
@@ -328,7 +350,7 @@
 							<div ng-repeat="rule in item.rules">
 								<p>
 								<div class="label label-primary">
-									{{rule.start_time | date:'shortTime'}} às {{rule.end_time | date:'shortTime'}}
+									<span class="glyphicon glyphicon-ban-circle"></span> {{rule.start_time | date:'shortTime'}} às {{rule.end_time | date:'shortTime'}}
 								</div>
 								<div class="label label-default">
 									<a href="" ng-click="dashController.deleteEconomyRule(rule._id)">&times;</a>
@@ -339,9 +361,9 @@
 								data-toggle="tooltip" 
 								data-placement="top" 
 								title="Considera a variação de potência do equipamento durante o dia.">
-								Potência média por dia: {{item.mean_power | number:0}} W</span>
-							<span class="list-group-item device-box">Redução de consumo: {{item.projected_economy | number:2}} kWh/mês</span>
-							<span class="list-group-item device-box">Economia estimada: R$ {{item.projected_economy*0.4 | number:2}} /mês</span>
+								<span class="glyphicon glyphicon-flash"></span> Potência média por dia: {{item.mean_power | number:0}} W</span>
+							<span class="list-group-item device-box"><span class="glyphicon glyphicon-arrow-down"></span> Redução estimada: {{item.projected_economy | number:2}} kWh/mês</span>
+							<span class="list-group-item device-box"><span class="glyphicon glyphicon-piggy-bank"></span> Economia estimada: R$ {{item.projected_economy*0.4 | number:2}} /mês</span>
 						<ul class="list-group device-box"></ul>
 						</div>
 					</div>
@@ -440,7 +462,7 @@
 							</div>
 							<div class="form-group">
 								<label>Opção 2 - Sugestão para tarifa branca</label>
-								<p><label><input type="checkbox" ng-disabled="!devBlockForm.$invalid" ng-model="dashController.newRule.peakPeriod" aria-label="..."> Horário de ponta (20 às 22h)</label></p>
+								<p><label><input type="checkbox" ng-disabled="!devBlockForm.$invalid" ng-model="dashController.newRule.peakPeriod" aria-label="..."> Horário de ponta (19 às 22h)</label></p>
 							</div>
 						
 						<button type="submit" class="btn btn-default" data-toggle="collapse" data-target="#collapseDevBlock"

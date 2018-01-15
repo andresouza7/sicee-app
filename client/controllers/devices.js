@@ -6,11 +6,35 @@ myApp.controller('DevicesController', ['$scope', '$interval', '$http', '$locatio
 	var devController = this;
 	$scope.device = device;
 	$scope.templates = {
-		device_filter: {url: '../templates/device_filter.html'}
+		device_filter: {url: '../templates/device_filter.html'},
+		new_function: {url: '../templates/new_function.html'}
 	}
 	room.getRooms().then(function(data){
 		$scope.rooms_list = data;
+		console.log($scope.rooms_list);
 	});
+
+	devController.newMeasure = function(roomId){
+		$http.post('/api/room/measure', {
+			roomId: roomId,
+			period_start: devController.measure_start,
+			period_end: devController.measure_end
+		}).then(function(response) {
+			room.getRooms().then(function(data){
+				$scope.rooms_list = data;
+			});
+		});
+	}
+	devController.removeMeasureFromRoom = function(roomId, measureId){
+		$http.post('/api/room/measure/delete', {
+			roomId: roomId,
+			measureId: measureId
+		}).then(function(response) {
+			room.getRooms().then(function(data){
+				$scope.rooms_list = data;
+			});
+		});
+	}
 
 	devController.addRoom = function(room_name){
 		$http.post('/api/room', {

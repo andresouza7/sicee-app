@@ -60,7 +60,7 @@ myApp.controller('DashboardController', ['$scope', '$cookies', '$interval', '$ti
 					// console.log("DATE NOW "+timestampNow);
 					let telemetryTimestamp = new Date(device.telemetry.timestamp).getTime() // converts date format to milliseconds
 					// console.log("TELEMETRY DATE "+telemetryTimestamp);
-					if (timestampNow - telemetryTimestamp  <= 10000) { // if within the sampling period, then it is connected
+					if (timestampNow - telemetryTimestamp  <= 12000) { // if within the sampling period, then it is connected
 						device.connected = true;
 					} else { 
 						device.connected = false;}

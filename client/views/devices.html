@@ -44,14 +44,15 @@
 								<div><label>ID:</label> {{device._id}}</div>
 								<div><label>Placa medidora:</label> {{device.pipe ? 'Sicce '+device.pipe : 'Não pareado'}} </div>
 								<div>
-									<label>Ambiente:</label> 
+									<label>Circuito:</label> 
 									<a href="" ng-if="!device.roomName" data-toggle="collapse" data-target="#addToRoom{{device._id}}">Associar</a>
 									<span ng-if="device.roomName">{{device.roomName}} <a href="" ng-click="devController.removeDeviceFromRoom(device.roomId,device._id)"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></span>
 
 									<div class="collapse" id="addToRoom{{device._id}}">
 										<div class="well">
+											<p>Adicionar ao circuito:</p>
 											<span ng-repeat="room in rooms_list">
-												<button class="btn btn-primary btn-sm" data-toggle="collapse" ng-click="devController.addDeviceToRoom(room._id,device._id)">{{room.name | uppercase}}</button> 
+												<button class="btn btn-primary btn-sm add_to_circuit" data-toggle="collapse" ng-click="devController.addDeviceToRoom(room._id,device._id)">{{room.name | uppercase}}</button> 
 											</span>
 										</div>
 									</div>
@@ -173,19 +174,38 @@
 	<br>
 	<div class="panel panel-default">
 		<div class="panel-heading">
-			<h3 class="panel-title">Ambientes cadastrados</h3>
+			<h3 class="panel-title">Circuitos cadastrados</h3>
 		</div>
 		<div class="panel-body">
 			<div class="row">
 				<div ng-repeat="room in rooms_list | orderBy:'name'">
 					<div class="col-sm-4">
 						<h4>{{room.name | uppercase}}</h4>
+						<!-- <p>ID: {{room._id}}</p> -->
 						<p>Dispositivos:</p>
 						<ul class="list-group device-box">
-						<li class="list-group-item device-box" ng-repeat="device in room.devices | orderBy:'name'">
-								{{device.name | uppercase}} <a href="" ng-click="devController.removeDeviceFromRoom(room._id,device._id)"><span class="glyphicon glyphicon-remove"></span></a>
-						</li>
-						</ul><br>
+							<li class="list-group-item device-box" ng-repeat="device in room.devices | orderBy:'name'">
+									{{device.name | uppercase}} <a href="" ng-click="devController.removeDeviceFromRoom(room._id,device._id)"><span class="glyphicon glyphicon-remove"></span></a>
+							</li>
+						</ul>
+						<p>Medições:</p>
+						<ul class="list-group device-box">
+							<li class="list-group-item device-box" ng-repeat="measure in room.measures">
+									<a href="#/statistics/{{measure._id}}">{{measure.period_start | date:'d/MM/yy HH:mm:ss'}} a {{measure.period_end | date:'d/MM/yy HH:mm:ss'}}</a>
+									<a href="" ng-click="devController.removeMeasureFromRoom(room._id,measure._id)">
+										<span class="glyphicon glyphicon-remove"></span>
+									</a>
+							</li>
+						</ul>
+						<a href="" 
+						data-toggle="collapse" 
+						data-target="#newMeasure{{room._id}}">
+							<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span> Programar
+						</a>
+						<div class="collapse" id="newMeasure{{room._id}}">
+							<div ng-include="templates.new_function.url"></div>
+						</div>
+						<br><br>
 
 						<button class="btn btn-primary" 
 						data-toggle="collapse" 

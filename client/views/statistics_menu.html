@@ -1,0 +1,16 @@
+<div class="statisticsPage">
+	<p>Acompanhe os relatórios com as estatísticas coletadas nos intervalos de medição programados</p>
+	<div ng-repeat="room in rooms_list">
+		<div class="well">
+			<h4><span class="glyphicon glyphicon-flash" aria-hidden="true"></span> Circuito: {{room.name}}</h4>
+			<h5>Relatórios:</h5>
+			<p ng-repeat="measure in room.measures">
+				<span class="glyphicon glyphicon-time" aria-hidden="true"></span> 
+				<a href="#/statistics/{{measure._id}}">
+					{{measure.period_start | date:'d/MM/yy HH:mm:ss'}} a 
+					{{measure.period_end | date:'d/MM/yy HH:mm:ss'}}
+				</a>
+			</p>
+		</div>
+	</div>
+</div>

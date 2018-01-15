@@ -2,11 +2,7 @@ let mongoose = require('mongoose');
 
 // Article Schema
 let consumptionSchema = mongoose.Schema({
-  deviceId:{
-    type: String,
-    required: true
-  },
-  roomId:{
+  measureId:{
     type: String,
     required: true
   },
@@ -16,18 +12,6 @@ let consumptionSchema = mongoose.Schema({
   },
   timestamp:{
     type: Date,
-    required: true
-  },
-  month:{
-    type:Number,
-    required: true
-  },
-  day:{
-    type:Number,
-    required: true
-  },
-  hour:{
-    type:Number,
     required: true
   }
 });

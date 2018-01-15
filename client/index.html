@@ -25,7 +25,8 @@
             <ul class="nav navbar-nav navbar-left">
               <li><a href="#/dashboard"><span class="glyphicon glyphicon-dashboard" aria-hidden="true"></span> Monitoramento</a></li>
               <li><a href="#/statistics"><span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Estatísticas</a></li>
-              <li><a href="#/devices"><span class="glyphicon glyphicon-cog" aria-hidden="true"></span> Dispositivos</a></li>
+              <li><a href="#/devices"><span class="glyphicon glyphicon-cog" aria-hidden="true"></span> Dispositivos e circuitos</a></li>
+              <li><a href=""><span class="glyphicon glyphicon-book" aria-hidden="true"></span> Documentação</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
               <li ng-if="usersController.user">
@@ -141,17 +142,7 @@
   <script src="/controllers/dashboard.js"></script>
   <script src="/controllers/devices.js"></script>
   <script src="/controllers/statistics.js"></script>
+  <script src="/controllers/statistics_menu.js"></script>
   <script src="/socket.io/socket.io.js"></script> <!-- via npm -->
-  <script>
-    // $(function () {
-    //   var socket = io();
-    //   $('.test').on('click', function(e){
-    //     socket.emit('chat message', 'testing...');
-    //   });
-    //   socket.on('telemetry', function(msg){
-    //     alert('New data from server:<br>'+msg);
-    //   });
-    // });
-  </script>
 </body>
 </html>

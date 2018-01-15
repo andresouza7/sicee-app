@@ -1,4 +1,7 @@
-let mongoose = require('mongoose');
+let mongoose = require('mongoose'), Schema = mongoose.Schema;
+
+// Measure Model
+var Measure = require('../models/measure');
 
 let roomSchema = mongoose.Schema({
   name: {
@@ -7,6 +10,9 @@ let roomSchema = mongoose.Schema({
   },
   devices:{
     type: Array
+  },
+  measures: {
+    type: Array,
   },
   createdAt:{
     type: Date,

@@ -107,16 +107,16 @@ myApp.config(function($routeProvider){
 		templateUrl: 'views/devices.html'
 	})
 	.when('/statistics', {
+		controller:'StatisticsMenuController',
+		templateUrl: 'views/statistics_menu.html'
+	})
+	.when('/statistics/:id',{
 		controller:'StatisticsController',
 		templateUrl: 'views/statistics.html'
 	})
 	.when('/account',{
 		controller:'UsersController',
 		templateUrl: 'views/account.html'
-	})
-	.when('/books/edit/:id',{
-		controller:'DevicesController',
-		templateUrl: 'views/edit_book.html'
 	})
 	.otherwise({
 		redirectTo: '/'

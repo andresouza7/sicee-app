@@ -1,0 +1,56 @@
+<div class="well">
+    <form name="newMeasureForm">
+    <p>
+        <p class="tips">
+            Configure um período de medição para este circuito e 
+            deixe as placas ligadas durante todo
+            o período para que as estatísticas sejam precisas.
+        </p>
+        <h4>Período</h4>
+        <!-- start time -->
+        <div class="form-group">
+            <div class="form-control"
+                    moment-picker="measure_start_display"
+                    format="D MMM YYYY HH:mm:ss"
+                    locale="pt-br"
+                    ng-model="devController.measure_start"
+                    ng-required="dashController.on_checked">
+            <a class="pull-right"
+                    ng-if="devController.measure_start"
+                    ng-click="devController.measure_start = undefined">
+                &times;
+            </a>
+            <span ng-class="{'text-muted': !devController.measure_start}">
+                {{ measure_start_display || 'Início' }}
+            </span>
+            </div>	
+        </div>
+        <!-- end time -->
+        <div class="form-group">
+            <div class="form-control"
+                    moment-picker="measure_end_display"
+                    format="D MMM YYYY HH:mm:ss"
+                    locale="pt-br"
+                    ng-model="devController.measure_end"
+                    ng-required="dashController.on_checked">
+            <a class="pull-right"
+                    ng-if="devController.measure_end"
+                    ng-click="devController.measure_end = undefined">
+                &times;
+            </a>
+            <span ng-class="{'text-muted': !devController.measure_end}">
+                {{ measure_end_display || 'Término' }}
+            </span>
+            </div>
+        </div>
+    </p>	
+    <div>
+        <button type="submit" class="btn btn-success btn-sm" data-toggle="collapse" data-target="#newMeasure{{room._id}}" ng-disabled="newMeasureForm.$invalid" data-ng-click="devController.newMeasure(room._id)">
+            <span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Salvar
+        </button>
+        <button type="button" class="btn btn-default btn-sm" data-toggle="collapse" data-target="#newMeasure{{room._id}}">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancelar
+        </button>
+    </div>
+    </form>
+</div>

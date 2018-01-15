@@ -1,12 +1,12 @@
 let mongoose = require('mongoose');
 
-// Article Schema
+// Telemetry Schema
 let telemetrySchema = mongoose.Schema({
-  deviceId:{
+  measureId:{
     type: String, //mongoose.Schema.ObjectId
     required: true
   },
-  roomId:{
+  deviceId:{
     type: String,
     required: true
   },
@@ -22,22 +22,14 @@ let telemetrySchema = mongoose.Schema({
     type: Number,
     required: true
   },
+  consumption:{
+    type: Number,
+    required: true
+  },
   timestamp:{
     type: Date,
     required: true
-  },
-  month:{
-    type:Number,
-    required: true
-  },
-  day:{
-    type:Number,
-    required: true
-  },
-  hour:{
-    type:Number,
-    required: true
   }
 });
-// Thir argument will be the collection name in the database
+// This argument will be the collection name in the database
 let Telemetry = module.exports = mongoose.model('Telemetry', telemetrySchema, 'telemetry');
