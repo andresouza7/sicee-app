@@ -23,6 +23,9 @@ let system_infoSchema = mongoose.Schema({
       start: Date,
       end: Date
     }
+  },
+  gateway_connected:{
+    type: Boolean
   }
 });
 

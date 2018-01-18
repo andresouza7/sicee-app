@@ -248,13 +248,21 @@ myApp.controller('DashboardController',
 		log.getlogs().then(function(data){
 			$scope.logs = data;
 		});
-		dashController.checkConnection();
+		// dashController.checkConnection();
 		dashController.getSystemStats();
 		dashController.getTelemetry();
 		dashController.searchSchedule();
 	});
 	socket.on('connectionStatus', function (data) {
-		dashController.checkConnection();
+		dashController.connectionStatus = true;
+
+		if (dashController.checkConnection) {
+			$interval.cancel(dashController.checkConnection);
+		}
+		dashController.checkConnection = $interval(function() {
+			dashController.connectionStatus = false; // Indicates gateway is offline
+			dashController.getTelemetry(); // Indicates radio link for devices has gone off too
+        }, 3000,1); // 200ms more than the actual period
 	});
 	// dashController.setInputTime = function () {
 	// 	dashController.newJob = {startTime:new Date(),endTime:new Date()};

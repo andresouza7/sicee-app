@@ -13,6 +13,7 @@ let measureSchema = mongoose.Schema({
   createdAt:{
   	type: Date,
   },
+  consumption_per_day:{type:Array},
   consumption_per_hour_total:{type:Array},
   consumption_per_hour_device:{type:Array},
   consumption_device:{type:Array},
