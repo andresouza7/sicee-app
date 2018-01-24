@@ -79,7 +79,7 @@ router.post('/register', function(req, res){
 
   User.find({username: username}).exec(function (err, user){
     if (user.length) {
-      console.log(user);
+      // console.log(user);
       let feedback={errors};
       if (errors) {
         errors.push({
@@ -121,7 +121,7 @@ router.post('/register', function(req, res){
                 return;
               } else {
                 res.json(newUser);
-                console.log(newUser);
+                // console.log(newUser);
               }
             });
           });

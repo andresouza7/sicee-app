@@ -109,29 +109,9 @@
 						<!-- <button ng-click="turnOn(device._id)" class="btn btn-success">Ligar</button>
 						<button ng-click="turnOff(device._id)" class="btn btn-danger">Desligar</button> -->
 						<!-- <a class="btn btn-primary" href="#/control/details/{{book._id}}">Parear</a> -->
-						<button class="btn btn-default" ng-if="device.pipe!=''" data-toggle="modal" data-target="#ping{{device._id}}">
-							<span class="glyphicon glyphicon-transfer" aria-hidden="true"></span> Ping
+						<button class="btn btn-default" ng-if="device.pipe!=''" ng-click="devController.rfTether(device._id,false)">
+							<span class="glyphicon glyphicon-transfer" aria-hidden="true"></span> Desparear
 						</button>
-						<div class="modal fade" id="ping{{device._id}}" role="dialog">
-							<div class="modal-dialog modal-sm">
-								<div class="modal-content">
-									<div class="modal-header">
-										<button type="button" class="close" data-dismiss="modal" ng-click="devController.startRfPing(device._id)">&times;</button>
-										<h4 class="modal-title">Teste de conexão de rádiofrequência</h4>
-									</div>
-									<div class="modal-body">
-										<p>Dispositivo: {{device.deviceId}}</p>
-										<p>Canal de RF: {{device.pipe}}</p>
-										<p>---------</p>
-										<p>Pacote recebido: 22ms</p>
-									</div>
-									<div class="modal-footer">
-										<button type="button" class="btn btn-default" data-dismiss="modal" ng-click="devController.stopRfPing(device._id)">Ping</button>
-										<button type="button" class="btn btn-default" data-dismiss="modal">Fechar</button>
-									</div>
-								</div>
-							</div>
-						</div>
 						<button ng-disabled="!user" class="btn btn-default" ng-if="device.pipe==''" data-toggle="modal" data-target="#sync{{device._id}}" ng-click="devController.rfTether(device._id,true)">
 								<span class="glyphicon glyphicon-signal" aria-hidden="true"></span> Parear
 						</button>

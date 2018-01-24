@@ -90,15 +90,22 @@ router.put('/:_id', function(req, res){
 // RF TETHER
 router.post('/sync/', function(req, res){
   console.log(req.body);
-  Device.update({_id:req.body.id}, {sync:req.body.sync}, function(err){
-    if(err){
-      console.log(err);
-      res.sendStatus(500);
-      return;
-    } else {
+  if (req.body.sync == true) {
+    Device.update({_id:req.body.id}, {sync:req.body.sync}, function(err){
+      if(err){
+        console.log(err);
+        res.sendStatus(500);
+        return;
+      } else {
+        res.sendStatus(200);
+      }
+    });
+  } else if (req.body.sync == false) {
+    Device.update({_id:req.body.id}, {pipe:''}, function(err){
+      if (err) console.log(err);
       res.sendStatus(200);
-    }
-  });
+    });
+  }
 });
 
 // Delete Article

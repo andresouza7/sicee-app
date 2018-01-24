@@ -616,23 +616,27 @@ router.get('/devices', function(req, res){
 			function promise(device){
 				return new Promise (function (resolve,reject){
 					Room.find({_id: device.roomId}).exec(function(err, room){
-						if (room.length > 0) {
-							// console.log(device);
-							let new_data = {
-								_id: device._id,
-								name: device.name,
-								roomId: device.roomId,
-								telemetry: device.telemetry,
-								sync: device.sync,
-								pipe: device.pipe,
-								change_state: device.change_state,
-								current_state: device.current_state,
-								roomName: room[0].name
-							};
-							if (err) reject(err);
-							else resolve(new_data);
+						if (room) {
+							if (room.length > 0) {
+								// console.log(device);
+								let new_data = {
+									_id: device._id,
+									name: device.name,
+									roomId: device.roomId,
+									telemetry: device.telemetry,
+									sync: device.sync,
+									pipe: device.pipe,
+									change_state: device.change_state,
+									current_state: device.current_state,
+									roomName: room[0].name
+								};
+								if (err) reject(err);
+								else resolve(new_data);
+							} else {
+								resolve(device);
+							}
 						} else {
-							resolve(device);
+							resolve (null);
 						}
 					});
 				});
@@ -1681,66 +1685,68 @@ router.post('/telemetry',function(req,res){
 	console.log(samples);
 	// 1. First, check if the boards are linked to a virtual device
 	if (samples) {
-		samples.forEach(function(sample, index){
-			// Parse received string to actual variables
-			let pipe = sample.substring(0, 1); // Treated as a String. Int will return error
-			let relayState = parseInt(sample.substring(1, 2));
-			let vrms = parseFloat(sample.substring(2,7))*2;
-			let irms = parseFloat(sample.substring(7,12));
-			let power = vrms*irms;
-			// console.log("sample"+sample);
-			Device.findOne({pipe: pipe}).exec(function(err,device){ // There is a device match for this pipe
-				if (device){
-					// Update device telemetry to indicate the radio link is connected
-					Device.findByIdAndUpdate(device._id, {telemetry: {
-						voltage: vrms,
-						current: irms,
-						power: power,
-						timestamp: getLocalDate().timestamp
-					}}).exec(function (err){
-						if (err) console.log(err);
-					});
-
-					// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
-					// This keeps tasks in memory. So if a command fails to execute
-					// it will be tried again
-					if (relayState==1) {
-						Device.update({pipe: pipe}, {current_state:"on"}, function(err){
-							if(err){
-								console.log(err);
-								return;
-							}
+		if (samples.length) {
+			samples.forEach(function(sample, index){
+				// Parse received string to actual variables
+				let pipe = sample.substring(0, 1); // Treated as a String. Int will return error
+				let relayState = parseInt(sample.substring(1, 2));
+				let vrms = parseFloat(sample.substring(2,7));
+				let irms = parseFloat(sample.substring(7,12));
+				let power = vrms*irms;
+				// console.log("sample"+sample);
+				Device.findOne({pipe: pipe}).exec(function(err,device){ // There is a device match for this pipe
+					if (device){
+						// Update device telemetry to indicate the radio link is connected
+						Device.findByIdAndUpdate(device._id, {telemetry: {
+							voltage: vrms,
+							current: irms,
+							power: power,
+							timestamp: getLocalDate().timestamp
+						}}).exec(function (err){
+							if (err) console.log(err);
 						});
-					} else if (relayState==0) {
-						Device.update({pipe: pipe}, {current_state:"off"}, function(err){
-							if(err){
-								console.log(err);
-								return;
+
+						// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
+						// This keeps tasks in memory. So if a command fails to execute
+						// it will be tried again
+						if (relayState==1) {
+							Device.update({pipe: pipe}, {current_state:"on"}, function(err){
+								if(err){
+									console.log(err);
+									return;
+								}
+							});
+						} else if (relayState==0) {
+							Device.update({pipe: pipe}, {current_state:"off"}, function(err){
+								if(err){
+									console.log(err);
+									return;
+								}
+							});
+						}
+						// save samples if there is a measurement programmed
+						saveSamples(device._id, sample);
+					} else { // Pairs a new device to this pipe
+						Device.findOne({sync: true}).exec(function(err, device) {
+							if (device) {
+								let id = device._id;
+								Device.update({_id: id}, {pipe:pipe}, function(err){
+									if(err) {console.log(err); return;
+									} else {
+										console.log("new device paired with pipe "+pipe);
+										Device.update({_id: id}, {sync:false}, function(err){
+											if(err) {console.log(err); return;}
+										});
+									}
+								});
+							} else {
+								console.log("no pipe matches and no devices ready to sync");
 							}
 						});
 					}
-					// save samples if there is a measurement programmed
-					saveSamples(device._id, sample);
-				} else { // Pairs a new device to this pipe
-					Device.findOne({sync: true}).exec(function(err, device) {
-						if (device) {
-							let id = device._id;
-							Device.update({_id: id}, {pipe:pipe}, function(err){
-								if(err) {console.log(err); return;
-								} else {
-									console.log("new device paired with pipe "+pipe);
-									Device.update({_id: id}, {sync:false}, function(err){
-										if(err) {console.log(err); return;}
-									});
-								}
-							});
-						} else {
-							console.log("no pipe matches and no devices ready to sync");
-						}
-					});
-				}
+				});
 			});
-		});
+		}
 	}
 
 	// 2. For each device linked, check if it 
@@ -1756,7 +1762,7 @@ router.post('/telemetry',function(req,res){
 						if (err) console.log(err);
 						if (measure) {
 							// console.log("measure meets criteria");
-							let vrms = parseFloat(sample.substring(2,7))*2;
+							let vrms = parseFloat(sample.substring(2,7));
 							let irms = parseFloat(sample.substring(7,12));
 							let power = vrms*irms;
 							let telemetry = new Telemetry();
@@ -1916,337 +1922,6 @@ router.post('/telemetry',function(req,res){
 		}
 	}
 });
-
-router.post('/telemetryBranch',function(req,res){
-	io.emit('telemetry', "telemetry received");
-	res.json([]);
-
-	// console.log(req.body);
-	let now = new Date(); // in UTC
-	let match_query = {$and:[{'measures.period_start':{$lte:now}},{'measures.period_end':{$gte:now}}]};
-	Room.aggregate([
-		// Get just the docs that contain a shapes element where color is 'red'
-		{$match: match_query},
-		{$project: {
-			measures: {$filter: {
-				input: '$measures',
-				as: 'measure',
-				cond: {$and:[{ $lte: [ "$$measure.period_start", now ] },{ $gte: [ "$$measure.period_end", now ] }]}
-			}},
-			devices: "$devices"
-		}}
-	]).exec(function(err,rooms){
-		rooms.forEach(function(room){
-			room.measures.forEach(function(measure){
-				var telemetry_list = [];
-				var consumption_list = [];
-
-				function promise(sample){
-					return new Promise (function(resolve, reject) {
-						var pipe = sample.substring(0, 1);
-						Device.findOne({pipe: pipe}).exec(function(err,device){
-							if (device) {
-								console.log("device match found");
-								let vrms = parseFloat(sample.substring(2,7))*2;
-								let irms = parseFloat(sample.substring(7,12));
-								let power = vrms*irms;
-								let telemetry = {
-									deviceId : device._id,
-									relayState : parseInt(sample.substring(1, 2)),
-									vrms : vrms,
-									irms : irms,
-									power : power,
-									timestamp : getLocalDate().timestamp
-								}
-								let sampleRateInHours = 10.0/3600.0; // 10 seconds converted to hour
-								let consumption = {
-									deviceId : device._id,
-									consumption : power*sampleRateInHours,
-									timestamp : getLocalDate().timestamp
-								}
-								Room.update(
-									{ "_id": room._id, "measures._id": measure._id},
-									{ "$push": 
-										{"measures.$.telemetry":telemetry}
-									}
-								).exec(function(err,response){});
-								Room.update(
-									{ "_id": room._id, "measures._id": measure._id},
-									{ "$push": 
-										{"measures.$.consumption":consumption}
-									}
-								).exec(function(err,response){});
-								telemetry_list.push(telemetry);
-								consumption_list.push(consumption);
-								return resolve ();
-							} else {
-								console.log("device match NOT found");
-								Device.findOne({sync: true}).exec(function(err, device_search_two) {
-									if (device_search_two) {
-										let id = device_search_two._id;
-										Device.update({_id: id}, {pipe:pipe}, function(err){
-											if(err){
-												console.log(err);
-												return;
-											} else {
-												console.log("new device paired with pipe "+pipe);
-												Device.update({_id: id}, {sync:false}, function(err){
-													if(err){
-														console.log(err);
-														return;
-													}
-												});
-											}
-										});
-									} else {
-										console.log("no pipe matches and no devices ready to sync");
-									}
-								});
-								return resolve ();
-							}
-						}); // where device search ended
-					});
-				}
-				
-				var promises = [];
-				if (req.body.length) {// incoming data from board
-					req.body.forEach(function(sample){ 
-						promises.push(promise(sample));
-					});
-					Promise.all(promises).then(function(data){
-						// After samples were inserted in the DB, update stats
-						calculateStats(measure._id);
-					});
-				}
-			});
-		});
-	});
-});
-
-function calculateStats (measureId) {
-	function updateMeasure(measureId, new_stat) {
-		Room.update({'measures._id':measureId},{ $set: new_stat 
-		}).exec(function(err, response){
-			if (err) console.log(err);
-		});
-	}
-
-	// write code later to get from database
-	var standard_tariff = 0.4;
-	var peak_tariff = 1.82*standard_tariff;
-	var intermediate_tariff = 1.15*standard_tariff;
-	var offpeak_tariff = 0.78*standard_tariff;
-	// OBS: "sum" is the variable for total consumption
-
-
-	// GET CONSUMPTION PER DEVICE
-	var promise1 = new Promise(function(resolve,reject){
-		Room.aggregate([
-		{$match:{"measures._id":measureId}},
-		{$project: {
-			measure: {$filter: {
-				input: '$measures',
-				as: 'measure',
-				cond: {$eq: ['$$measure._id', measureId]}
-			}},
-			_id: 0
-		}},
-		{$unwind:'$measure'},
-		{$project: {consumption: '$measure.consumption'}},
-		{$unwind:"$consumption"},
-		{$group:{_id:"$consumption.deviceId",sum:{$sum:"$consumption.consumption"}}}
-		]).exec(function(err,response){
-			// console.log(response);
-			// updateMeasure(measureId,{
-			// 	"statistics.field" : {consumption_device: response}
-			// });
-			resolve(response);
-		});
-	});
-
-	// GET TOTAL CONSUMPTION
-	var promise2 = new Promise(function(resolve,reject){
-		Room.aggregate([
-		{$match:{"measures._id":measureId}},
-		{$project: {
-			measure: {$filter: {
-				input: '$measures',
-				as: 'measure',
-				cond: {$eq: ['$$measure._id', measureId]}
-			}},
-			_id: 0
-		}},
-		{$unwind:'$measure'},
-		{$project: {consumption: '$measure.consumption'}},
-		{$unwind:"$consumption"},
-		{$group:{_id:'all',sum:{$sum:"$consumption.consumption"}}}
-		]).exec(function(err,response){
-			// console.log(response);
-			// updateMeasure(measureId,{
-			// 	"statistics.consumption_total" : response
-			// });
-			// updateMeasure(measureId,{
-			// 	"statistics.estimated_cost_so_far" : response
-			// });
-			resolve(response);
-		});
-	});
-
-	// GET TOTAL CONSUMPTION PER HOUR and PROFILE
-	var promise3 = new Promise(function(resolve,reject){
-	Room.aggregate([
-		{$match:{"measures._id":measureId}},
-		{$project: {
-			measure: {$filter: {
-				input: '$measures',
-				as: 'measure',
-				cond: {$eq: ['$$measure._id', measureId]}
-			}},
-			_id: 0
-		}},
-		{$unwind:'$measure'},
-		{$project: {consumption: '$measure.consumption'}},
-		{$unwind:"$consumption"},
-		{$group:{_id:{$hour:"$consumption.timestamp"},sum:{$sum:"$consumption.consumption"}}}
-		]).exec(function(err,response){
-			// updateMeasure(measureId,{
-			// 	"statistics.consumption_per_hour_total" : response
-			// });
-			// get profile analysis
-			let consumption_standard = [];
-			let consumption_peak = [];
-			let consumption_intermediate = [];
-			let consumption_offpeak = [];
-			response.forEach(function(hour){
-				consumption_standard.push(hour.sum);
-				if (hour._id < 18 || hour._id >= 23) { // peak Period
-					consumption_offpeak.push(hour.sum);
-					// console.log("offpeak hour: "+hour._id);
-				}
-				if ((hour._id >= 18 && hour._id < 19) || (hour._id >= 22 && hour._id < 23)) { // intermediate Period
-					consumption_intermediate.push(hour.sum);
-					// console.log("intermediate hour: "+hour._id);
-				}
-				if (hour._id >= 19 && hour._id < 22) { // offpeak Period
-					consumption_peak.push(hour.sum);
-					// console.log("peak hour: "+hour._id);
-				}
-			});
-			var standard,peak,intermediate,offpeak,standard_best;
-			if (consumption_standard.length > 0) standard = consumption_standard.reduce((previous, current) => current += previous)*standard_tariff/1000;
-			if (consumption_peak.length > 0) peak = consumption_peak.reduce((previous, current) => current += previous)*peak_tariff/1000;
-			if (consumption_intermediate.length > 0) intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*intermediate_tariff/1000;
-			if (consumption_offpeak.length > 0) offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*offpeak_tariff/1000;
-			if (peak && intermediate && offpeak) standard_best = (peak+intermediate+offpeak) < standard ? false : true;
-
-			// updateMeasure(measureId,{
-			// 	"statistics.profile_analysys" : {
-			// 		cost_for_standard_tariff: standard,
-			// 		cost_for_white_tariff: peak+intermediate+offpeak,
-			// 		is_standard_best: standard_best,
-			// 		cost_offpeak: offpeak,
-			// 		cost_intermediate: intermediate,
-			// 		cost_peak: peak
-			// 	}
-			// });
-			resolve({
-					cost_for_standard_tariff: standard,
-					cost_for_white_tariff: peak+intermediate+offpeak,
-					is_standard_best: standard_best,
-					cost_offpeak: offpeak,
-					cost_intermediate: intermediate,
-					cost_peak: peak
-			});
-		});
-	});
-
-	// GET TOTAL CONSUMPTION PER HOUR PER DEVICE
-	var promise4 = new Promise (function(resolve,reject){
-		Room.findOne({'measures._id':measureId},{devices:1}).exec(function(err,room){
-			if (room){
-				function promise(deviceId){
-					return new Promise(function(resolve,reject){
-						Room.aggregate([
-							{$match:{"measures._id":measureId}},
-							{$project: {
-								measure: {$filter: {
-									input: '$measures',
-									as: 'measure',
-									cond: {$eq: ['$$measure._id', measureId]}
-								}},
-								_id: 0
-							}},
-							{$unwind:'$measure'},
-							{$project: {consumption: '$measure.consumption'}},
-							{$unwind:"$consumption"},
-							{$match:{'consumption.deviceId': mongoose.Types.ObjectId(deviceId)}},
-							{$group:{_id:{$hour:"$consumption.timestamp"},sum:{$sum:"$consumption.consumption"}}}
-							]).exec(function(err,response){
-								// do stuff with device results
-								resolve({deviceId: deviceId, consumption: response});
-						});
-					});
-				}
-				var promises = [];
-				room.devices.forEach(function(deviceId){
-					promises.push(promise(deviceId));
-				});
-				Promise.all(promises).then(function(data){
-					// console.log(data);
-					// updateMeasure(measureId,{
-					// 	"statistics.consumption_per_hour_device" : data
-					// });
-					resolve(data);
-				});
-			}
-		});
-	});
-
-	Promise.all([promise1,promise2,promise3,promise4]).then(function(data){
-		// console.log("promises "+JSON.stringify(data));
-		updateMeasure(measureId,{
-			"statistics" : {stats:{
-				field1: data[0],
-				field2: data[1],
-				field3: data[2],
-				field4: data[3]
-				}
-			}
-		});
-	});
-
-	// UPDATE MEASURE PROGRESS
-	Room.aggregate([
-		{$match:{"measures._id":measureId}},
-		{$project: {
-			measure: {$filter: {
-				input: '$measures',
-				as: 'measure',
-				cond: [{$eq: ['$$measure._id', measureId]}]
-			}},
-			_id: 0
-		}},
-		{$unwind:'$measure'},
-		{$project: {_id:'$measure._id',period_start: '$measure.period_start',period_end: '$measure.period_end'}},
-    	{$match:{"_id":"5a5a7168aed78a80f2a1fda5"}}
-	]).exec(function(err, measure){
-		// console.log(measure._id);
-		// let start = measure.period_start.getTime();
-		// let finish = measure.period_end.getTime();
-		// let now = new Date();
-		// let progress = 0;
-		// if (now > start && now < finish) {
-		// 	progress = ((now - start) / (finish - start))*100;
-		// }
-		// if ( now > finish) {
-		// 	progress = 100
-		// }
-		// console.log(progress);
-		// updateMeasure(measureId,{
-		// 	"statistics.progress" : progress.toFixed(0)
-		// });
-	});
-}
 
 router.get('/stats/:id',function(req,res){
 	Measure.findById(req.params.id).exec(function(err,measure){

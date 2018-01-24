@@ -152,30 +152,34 @@ function($scope, $interval, $http, $location, $routeParams, device, room, user){
 		};
 		$http.post('/devices/sync/', info).then(function(response){
 			console.log(response.data);
-			var times = 60;
-			var promise = $interval(
-			   	function () {
-					$http.get('/devices/'+id).then(function(response) {
-						console.log(response.data);
-						var retry = -(60 - (times++));
-						devController.tetherMsg = "Aguardando conexão, " + retry + " segundos";
-						if (response.data.pipe != ""){
-							devController.tetherMsg = "Dispositivo pareado";
-							devController.devices.forEach(function(item){
-								if (String(item._id) == String(id))
-									item.isTethered = true;
-							})
-							$interval.cancel(promise);
-							location.reload();
-						} 
-						if (retry == 30) {
-							devController.tetherMsg = "Tempo esgotado, conexão sem sucesso";
-							$interval.cancel(promise);
-							location.reload();
-						}
-					});
-				  	
-			   }, 1000, 60);
+			if (sync == true) {
+				var times = 60;
+				var promise = $interval(
+					function () {
+						$http.get('/devices/'+id).then(function(response) {
+							console.log(response.data);
+							var retry = -(60 - (times++));
+							devController.tetherMsg = "Aguardando conexão, " + retry + " segundos";
+							if (response.data.pipe != ""){
+								devController.tetherMsg = "Dispositivo pareado";
+								devController.devices.forEach(function(item){
+									if (String(item._id) == String(id))
+										item.isTethered = true;
+								})
+								$interval.cancel(promise);
+								location.reload();
+							} 
+							if (retry == 30) {
+								devController.tetherMsg = "Tempo esgotado, conexão sem sucesso";
+								$interval.cancel(promise);
+								location.reload();
+							}
+						});
+						
+				}, 1000, 60);
+			} else {
+				location.reload();
+			}
 		});
 	}
 
