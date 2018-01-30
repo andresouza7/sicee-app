@@ -7,6 +7,7 @@ myApp.controller('DashboardController',
 
 	dashController = this;
 	dashController.user = $cookies.getObject("user_account");
+	dashController.connectionStatus = false;
 	log.getlogs().then(function(data){
 		$scope.logs = data;
 	});
@@ -42,17 +43,6 @@ myApp.controller('DashboardController',
 		}
 	}
 
-	dashController.checkConnection = function () {
-		dashController.connectionStatus;
-		$http.get('/api/checkConnection').then(function(response) {
-			if (response.data.shutdown == false){ // means the system is online
-				dashController.connectionStatus = true;
-			} else if (response.data.shutdown == true){
-				dashController.connectionStatus = false;
-			}
-		});
-	}
-
 	// Get telemetry from all devices
 	dashController.getTelemetry = function(){
 		$http.get('/api/devices').then(function(response) {
@@ -63,7 +53,7 @@ myApp.controller('DashboardController',
 					console.log("DATE NOW "+timestampNow);
 					let telemetryTimestamp = new Date(device.telemetry.timestamp).getTime() // converts date format to milliseconds
 					console.log("TELEMETRY DATE "+telemetryTimestamp);
-					if (timestampNow - telemetryTimestamp  <= 3200) { // if within the sampling period, then it is connected
+					if (timestampNow - telemetryTimestamp  <= 4000) { // if within the sampling period, then it is connected
 						device.connected = true;
 					} else { 
 						device.connected = false;}
@@ -262,7 +252,7 @@ myApp.controller('DashboardController',
 		dashController.checkConnection = $interval(function() {
 			dashController.connectionStatus = false; // Indicates gateway is offline
 			dashController.getTelemetry(); // Indicates radio link for devices has gone off too
-        }, 3000,1); // 200ms more than the actual period
+        }, 4000,1); // 200ms more than the actual period
 	});
 	// dashController.setInputTime = function () {
 	// 	dashController.newJob = {startTime:new Date(),endTime:new Date()};

@@ -1,10 +1,8 @@
 <div ng-controller="DashboardController as dashController" ng-init="dashController.getTelemetry()">
-<div ng-init="dashController.checkConnection()">
 <div ng-class="dashController.connectionStatus ? 'alert alert-success text-center' : 'alert alert-danger text-center'" role="alert">
 	<span ng-class="dashController.connectionStatus ? 'glyphicon glyphicon-globe' : 'glyphicon glyphicon-warning-sign'" aria-hidden="true"></span> 
 	<label>{{dashController.connectionStatus ? 'GATEWAY CONECTADO' : 'GATEWAY DESCONECTADO, aguardando conexão...'}}</label>
 	<!-- <button type="button" ng-click="log.register('{}')">log</button> -->
-</div>
 </div>
 <div class="panel panel-default">
   <div class="panel-heading">
