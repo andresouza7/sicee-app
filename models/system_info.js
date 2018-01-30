@@ -26,6 +26,9 @@ let system_infoSchema = mongoose.Schema({
   },
   gateway_connected:{
     type: Boolean
+  },
+  timezoneoffset: {
+    type: Number
   }
 });
 

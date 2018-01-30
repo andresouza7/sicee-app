@@ -111,6 +111,20 @@ function getLocalDate (inputDate) {
 	}
 }
 
+router.get('/timetest',function(req,res){
+	let mydate = new Date().getTime();
+	let newdate = new Date(mydate);
+	let offset = 180*60*1000; // this from database
+	newdate.setTime( newdate.getTime() - offset );
+	let data = {
+	date1: mydate,
+	date2: newdate,
+	offset: newdate.getTimezoneOffset()
+	}
+	
+	res.json(data);
+});
+
 function updateState(devId,state) {
 	Device.update({_id: devId}, {change_state:state}, function(err){
 		if(err){
@@ -1683,112 +1697,137 @@ router.post('/telemetry',function(req,res){
 
 	var samples = req.body;
 	console.log(samples);
-	// 1. First, check if the boards are linked to a virtual device
-	if (samples) {
-		if (samples.length) {
-			samples.forEach(function(sample, index){
-				// Parse received string to actual variables
-				let pipe = sample.substring(0, 1); // Treated as a String. Int will return error
-				let relayState = parseInt(sample.substring(1, 2));
-				let vrms = parseFloat(sample.substring(2,7));
-				let irms = parseFloat(sample.substring(7,12));
-				let power = vrms*irms;
-				// console.log("sample"+sample);
-				Device.findOne({pipe: pipe}).exec(function(err,device){ // There is a device match for this pipe
-					if (device){
-						// Update device telemetry to indicate the radio link is connected
-						Device.findByIdAndUpdate(device._id, {telemetry: {
-							voltage: vrms,
-							current: irms,
-							power: power,
-							timestamp: getLocalDate().timestamp
-						}}).exec(function (err){
-							if (err) console.log(err);
-						});
+	SystemInfo.findById("system_info").exec(function(err,system_info){
+		let now = new Date();
+		now.setTime( now.getTime() - system_info.timezoneoffset ); 
+		// 1. First, check if the boards are linked to a virtual device
+		if (samples) {
+			if (samples.length) {
+				samples.forEach(function(sample, index){
+					// Parse received string to actual variables
+					let pipe = sample.substring(0, 1); // Treated as a String. Int will return error
+					let relayState = parseInt(sample.substring(1, 2));
+					let vrms = parseFloat(sample.substring(2,7));
+					let irms = parseFloat(sample.substring(7,12));
+					let power = vrms*irms;
+					// console.log("sample"+sample);
+					Device.findOne({pipe: pipe}).exec(function(err,device){ // There is a device match for this pipe
+						if (device){
+							// Update device telemetry to indicate the radio link is connected
+							Device.findByIdAndUpdate(device._id, {telemetry: {
+								voltage: vrms,
+								current: irms,
+								power: power,
+								timestamp: now
+							}}).exec(function (err){
+								if (err) console.log(err);
+							});
 
-						// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
-						// This keeps tasks in memory. So if a command fails to execute
-						// it will be tried again
-						if (relayState==1) {
-							Device.update({pipe: pipe}, {current_state:"on"}, function(err){
-								if(err){
-									console.log(err);
-									return;
+							// FEEDBACK FROM SICEE METER BOARD TO UPDATE CURRENT RELAY STATE
+							// This keeps tasks in memory. So if a command fails to execute
+							// it will be tried again
+							if (relayState==1) {
+								Device.update({pipe: pipe}, {current_state:"on"}, function(err){
+									if(err){
+										console.log(err);
+										return;
+									}
+								});
+							} else if (relayState==0) {
+								Device.update({pipe: pipe}, {current_state:"off"}, function(err){
+									if(err){
+										console.log(err);
+										return;
+									}
+								});
+							}
+							// LOOKS FOR ECONOMY RULES DEFINED FOR EACH DEVICE
+							EconomyRule.find({deviceId: device._id}).exec(function (err, rules){
+								if (rules) {
+									rules.forEach(function(rule){
+										var timenow = new Date().getHours() + new Date().getMinutes()/60;
+										var start = rule.timeoff_start.getHours() + rule.timeoff_start.getMinutes()/60;
+										var end = rule.timeoff_end.getHours() + rule.timeoff_end.getMinutes()/60;
+										if (end == 0) end = 24;
+										// console.log("timenow"+timenow);
+										// console.log("start"+start);
+										// console.log("end"+end);
+										if (timenow >= start && timenow < end && relayState == 1) {
+											updateState(device._id,"off");
+											console.log("device cannot be on at this time");
+										}
+									});
 								}
 							});
-						} else if (relayState==0) {
-							Device.update({pipe: pipe}, {current_state:"off"}, function(err){
-								if(err){
-									console.log(err);
-									return;
+							// save samples if there is a measurement programmed
+							saveSamples(device._id, sample);
+						} else { // Pairs a new device to this pipe
+							Device.findOne({sync: true}).exec(function(err, device) {
+								if (device) {
+									let id = device._id;
+									Device.update({_id: id}, {pipe:pipe}, function(err){
+										if(err) {console.log(err); return;
+										} else {
+											console.log("new device paired with pipe "+pipe);
+											Device.update({_id: id}, {sync:false}, function(err){
+												if(err) {console.log(err); return;}
+											});
+										}
+									});
+								} else {
+									console.log("no pipe matches and no devices ready to sync");
 								}
 							});
 						}
-						// save samples if there is a measurement programmed
-						saveSamples(device._id, sample);
-					} else { // Pairs a new device to this pipe
-						Device.findOne({sync: true}).exec(function(err, device) {
-							if (device) {
-								let id = device._id;
-								Device.update({_id: id}, {pipe:pipe}, function(err){
-									if(err) {console.log(err); return;
-									} else {
-										console.log("new device paired with pipe "+pipe);
-										Device.update({_id: id}, {sync:false}, function(err){
-											if(err) {console.log(err); return;}
-										});
-									}
-								});
-							} else {
-								console.log("no pipe matches and no devices ready to sync");
-							}
-						});
-					}
+					});
 				});
-			});
+			}
 		}
-	}
+	});
 
 	// 2. For each device linked, check if it 
 	function saveSamples(deviceId, sample) {
 		Room.findOne({devices: String(deviceId)}).exec(function(err, room){
 			// console.log("room "+room.name);
 			if (room && room.measures.length){
-				room.measures.forEach(function(measureId){
-					// console.log(measureId);
-					let now = new Date();
-					Measure.findOne({_id:measureId,period_start:{$lte:now},period_end:{$gte:now}},{_id:1})
-					.exec(function(err, measure){
-						if (err) console.log(err);
-						if (measure) {
-							// console.log("measure meets criteria");
-							let vrms = parseFloat(sample.substring(2,7));
-							let irms = parseFloat(sample.substring(7,12));
-							let power = vrms*irms;
-							let telemetry = new Telemetry();
-							telemetry.measureId = measureId;
-							telemetry.deviceId = deviceId;
-							telemetry.power = power;
-							telemetry.voltage = vrms;
-							telemetry.current = irms;
-							let sampleRateInHours = 10/3600; // 10 seconds converted to hour
-							telemetry.consumption = power*sampleRateInHours;
-							telemetry.timestamp = getLocalDate().timestamp;
-							telemetry.save(function(err){ 
-								if (err) console.log(err);
-								// Also update statistics base on the new data
-								updateStats(measureId, deviceId, room);
-							});
+				SystemInfo.findById("system_info").exec(function(err,system_info){
+					room.measures.forEach(function(measureId){
+						// console.log(measureId);
+						let now = new Date();
+						now.setTime( now.getTime() - system_info.timezoneoffset ); 
+						Measure.findOne({_id:measureId,period_start:{$lte:now},period_end:{$gte:now}},{_id:1})
+						.exec(function(err, measure){
+							if (err) console.log(err);
+							if (measure) {
+								// console.log("measure meets criteria");
+								let vrms = parseFloat(sample.substring(2,7));
+								let irms = parseFloat(sample.substring(7,12));
+								let power = vrms*irms;
+								let telemetry = new Telemetry();
+								telemetry.measureId = measureId;
+								telemetry.deviceId = deviceId;
+								telemetry.power = power;
+								telemetry.voltage = vrms;
+								telemetry.current = irms;
+								let sampleRateInHours = 3/3600; // 3 seconds converted to hour
+								telemetry.consumption = power*sampleRateInHours;
+								telemetry.timestamp = getLocalDate().timestamp;
+								telemetry.save(function(err){ 
+									if (err) console.log(err);
+									// Also update statistics base on the new data
+									updateStats(measureId, deviceId, room);
+								});
 
-							// Updates the telemetry field of the device sending data. This will indicate
-							// which devices are connected and which are not
-							Device.update({_id: deviceId},{telemetry: telemetry}).exec(function(err, res){
-								if (err)
-									log(err);
-							});
-						}
+								// Updates the telemetry field of the device sending data. This will indicate
+								// which devices are connected and which are not
+								Device.update({_id: deviceId},{telemetry: telemetry}).exec(function(err, res){
+									if (err)
+										log(err);
+								});
+							}
+						});
 					});
-				})
+				});//here
 			}
 		});
 

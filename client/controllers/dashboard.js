@@ -60,10 +60,10 @@ myApp.controller('DashboardController',
 			dashController.devices.forEach(function (device){
 				if (device.telemetry){ 
 					let timestampNow = dashController.getLocalDate().timestamp.getTime(); // converts date format to milliseconds
-					// console.log("DATE NOW "+timestampNow);
+					console.log("DATE NOW "+timestampNow);
 					let telemetryTimestamp = new Date(device.telemetry.timestamp).getTime() // converts date format to milliseconds
-					// console.log("TELEMETRY DATE "+telemetryTimestamp);
-					if (timestampNow - telemetryTimestamp  <= 12000) { // if within the sampling period, then it is connected
+					console.log("TELEMETRY DATE "+telemetryTimestamp);
+					if (timestampNow - telemetryTimestamp  <= 3200) { // if within the sampling period, then it is connected
 						device.connected = true;
 					} else { 
 						device.connected = false;}

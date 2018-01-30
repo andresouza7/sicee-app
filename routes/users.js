@@ -28,9 +28,20 @@ router.post('/system_info',function(req,res){
       if (err) console.log(err);
       res.sendStatus(200);
     });
-  } else res.sendStatus(400);
+  } else res.sendStatus(500);
 });
 
+router.post('/system_info/timezoneoffset',function(req,res){
+  let data = req.body;
+  if (data){
+    SystemInfo.update({_id: "system_info"},data,{upsert:true}).exec(function(err){
+      if (err) console.log(err);
+      res.sendStatus(200);
+    });
+  } else {
+    res.sendStatus(500);
+  }
+});
 // get system info for logged user
 router.get('/system_info',function(req,res){
   SystemInfo.findById("system_info",function(err,system_info){

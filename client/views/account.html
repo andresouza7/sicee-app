@@ -150,13 +150,18 @@
       <h3 class="panel-title">Configurações do sistema</h3>
     </div>
     <div class="panel-body" ng-init="usersController.getUsersList()">
+      <p><span class="glyphicon glyphicon-info-sign"></span> Definir o fuso horário da sua região.</p>
+      <div>
+        <span class="glyphicon glyphicon-time"></span> <label>GMT {{(-1)*usersController.system_info.timezoneoffset/(60*1000*60)}}h</label> | 
+        <a href="" ng-click="usersController.setTimezone()">Atualizar</a>
+      </div>
       <p><span class="glyphicon glyphicon-info-sign"></span> 
       Consulse as <a target="_blank"
       href="http://www.aneel.gov.br/ranking-das-tarifas">tarifas</a>
       e <a target="_blank"
       href="http://www.aneel.gov.br/alta-tensao/-/asset_publisher/zNaRBjCLDgbE/content/alta-tensao/654800?inheritRedirect=false&redirect=http%3A%2F%2Fwww.aneel.gov.br%2Falta-tensao%3Fp_p_id%3D101_INSTANCE_zNaRBjCLDgbE%26p_p_lifecycle%3D0%26p_p_state%3Dnormal%26p_p_mode%3Dview%26p_p_col_id%3Dcolumn-2%26p_p_col_pos%3D2%26p_p_col_count%3D3">
         postos tarifários</a>
-      no site da ANEEL.
+      no site da ANEEL.</p>
       
       <form name="systemInfoForm" ng-submit="usersController.edit_system_info()">
         <div class="row" ng-init="usersController.system_info; usersController.get_system_info()">

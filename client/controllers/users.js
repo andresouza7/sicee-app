@@ -103,8 +103,14 @@ myApp.controller('UsersController', ['$scope', '$cookies','$interval', '$http', 
 		});
 	}
 	usersController.get_system_info = function () {
-		$http.get('/users/system_info/', usersController.system_info).then(function(response) {
+		$http.get('/users/system_info').then(function(response) {
 			usersController.system_info = response.data;
+		});
+	}
+	usersController.setTimezone = function () { 
+		let offset = new Date().getTimezoneOffset()*60*1000;
+		$http.post('/users/system_info/timezoneoffset', {timezoneoffset: offset}).then(function(response) {
+			window.location.reload();
 		});
 	}
 }]);
