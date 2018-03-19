@@ -21,9 +21,9 @@
                 </div>
                 </div>
     </div>
-    <div class="panel panel-default">
+    <div class="panel panel-default" ng-init="statsController.getConsumptionPerHourMonthly()">
         <div class="panel-heading">
-            <h3 class="panel-title">Estatísticas mensais</h3>
+            <h3 class="panel-title">Estatísticas do período</h3>
                 <!-- <tt>option = {{selectedOptionDay | json}}</tt><br/> -->
         </div>
         <div class="panel-body">
@@ -43,19 +43,15 @@
                     </div>
                 </div>
                 <hr>
-                <h4>ESTATÍSTICAS E PREVISÕES</h4>
+                <h4>PREVISÕES</h4>
                 <div><span class="glyphicon glyphicon-info-sign"></span> 
-                    Média diária: {{statsController.avg | number:2}} Wh</div>
+                    Média diária: {{statsController.measure.daily_avg | number:2}} Wh</div>
                 <div><span class="glyphicon glyphicon-info-sign"></span> 
-                    Consumo acumulado no mês: {{statsController.consMonth | number:2}} Wh | {{statsController.consMonth/1000 | number:2}} kWh</div>
+                    Consumo acumulado: {{statsController.measure.consumption_total | number:2}} Wh | {{statsController.measure.consumption_total/1000 | number:2}} kWh</div>
                 <div><span class="glyphicon glyphicon-info-sign"></span> 
-                    Despesa acumulada: {{statsController.consMonth*0.4/1000 | currency:'R$'}}</div>
-                <div><span class="glyphicon glyphicon-info-sign"></span> 
-                    Previsão para o Mês: {{statsController.monthPrediction | number:2}} Wh | {{statsController.monthPrediction/1000 | number:2}} kWh</div>
-                <div><span class="glyphicon glyphicon-info-sign"></span> 
-                    Previsão de despesa: {{statsController.monthPrediction*0.4/1000 | currency:'R$'}}</div>
+                    Despesa acumulada: {{statsController.measure.acc_bill | currency:'R$':4}}</div>
             </div>
-            <div class="col-md-6" ng-init="statsController.getConsumptionPerHourMonthly()">
+            <div class="col-md-6">
                 <div class="row">
                     <h5 class="text-center">Consumo por hora (Wh)</h5>
                     <div class="charjs-size-monitor">
@@ -63,17 +59,17 @@
                     </div>
                 </div>
                 <hr>
-                <h4>ANÁLISE DE PERFIL</h4>
+                <h4>COMPARATIVO DE TARIFA</h4>
                 <div><span class="glyphicon glyphicon-usd"></span> 
-                    Despesa na tarifa convencional: {{statsController.measure.cost_for_standard_tariff | currency:'R$'}}</div>
+                    Despesa na tarifa convencional: {{statsController.measure.cost_for_standard_tariff | currency:'R$':4}}</div>
                 <div><span class="glyphicon glyphicon-usd"></span> 
-                    Despesa na tarifa branca: {{statsController.measure.cost_for_white_tariff | currency:'R$'}}</div>
+                    Despesa na tarifa branca: {{statsController.measure.cost_for_white_tariff | currency:'R$':4}}</div>
                 <ol>
-                    <li><span class="glyphicon glyphicon-flag"></span> Fora de ponta {{statsController.measure.cost_offpeak | currency:'R$'}}</li>
-                    <li><span class="glyphicon glyphicon-flag"></span> Intermediário {{statsController.measure.cost_intermediate | currency:'R$'}}</li>
-                    <li><span class="glyphicon glyphicon-flag"></span> Ponta {{statsController.measure.cost_peak | currency:'R$'}}</li>
+                    <li><span class="glyphicon glyphicon-flag"></span> Fora de ponta {{statsController.measure.cost_offpeak | currency:'R$':4}}</li>
+                    <li><span class="glyphicon glyphicon-flag"></span> Intermediário {{statsController.measure.cost_intermediate | currency:'R$':4}}</li>
+                    <li><span class="glyphicon glyphicon-flag"></span> Ponta {{statsController.measure.cost_peak | currency:'R$':4}}</li>
                 </ol>
-                <div><span class="glyphicon glyphicon-bookmark"></span> 
+                <div><span class="glyphicon glyphicon-info-sign"></span> 
                     Maior vantagem: {{statsController.measure.is_standard_best ? 'Tarifa convencional' : 'Tarifa branca'}}</div>
             </div>
         </div>

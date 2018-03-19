@@ -76,6 +76,11 @@ router.get('/socket', function(req, res){
 // timestamps for automation tasks. In the UI,Angular inserts the timezone offset according to the user timezone.
 
 // ========================= NOTES ON TIME CONVERSION !!! =============================
+router.get('/check', function(req, res){
+	SystemInfo.findOne({},{timezoneoffset: 1},function(err,config){
+		res.json(config);
+	});
+});
 
 function getLocalDate (inputDate) {
 	var dateUTC = new Date(Date.now()); 
@@ -205,7 +210,7 @@ function log (state) {
 		if (err) console.log(err);
 	});
 }
-setInterval(function(){ 
+setInterval(function(){ // CHECKS IF THE GATEWAY IS ONLINE OR OFFLINE
 	// console.log("looking for status");
 	let startAt = getLocalDate().timestamp_telemetry;
 	// console.log(startAt);
@@ -901,20 +906,6 @@ router.post('/schedule/repeat',function(req,res){
 	  agenda.start();
 	});
 	agenda.processEvery('10 seconds');
-	res.send(200);
-});
-
-router.get('/agenda/list',function(req,res){
-	var mongoConnectionString = config.database;
-	var agenda = new Agenda({db: {address: mongoConnectionString}});
-	
-	agenda.on('ready', function() {
-	    agenda.jobs({nextRunAt: {$ne:null}}, function(err, jobs) {
-		console.log(jobs[0].attrs.name);
-	  // Work with jobs (see below)
-		});
-	});
-	
 	res.send(200);
 });
 
@@ -1698,11 +1689,11 @@ router.post('/telemetry',function(req,res){
 	var samples = req.body;
 	console.log(samples);
 	SystemInfo.findById("system_info").exec(function(err,system_info){
-		let now = new Date();
-		now.setTime( now.getTime() - system_info.timezoneoffset ); 
 		// 1. First, check if the boards are linked to a virtual device
-		if (samples) {
-			if (samples.length) {
+		if (samples && system_info) {
+			if (samples.length && system_info.timezoneoffset) {
+				let now = new Date();
+				now.setTime( now.getTime() - system_info.timezoneoffset ); 
 				samples.forEach(function(sample, index){
 					// Parse received string to actual variables
 					let pipe = sample.substring(0, 1); // Treated as a String. Int will return error
@@ -1745,6 +1736,7 @@ router.post('/telemetry',function(req,res){
 							EconomyRule.find({deviceId: device._id}).exec(function (err, rules){
 								if (rules) {
 									rules.forEach(function(rule){
+										// fix here
 										var timenow = new Date().getHours() + new Date().getMinutes()/60;
 										var start = rule.timeoff_start.getHours() + rule.timeoff_start.getMinutes()/60;
 										var end = rule.timeoff_end.getHours() + rule.timeoff_end.getMinutes()/60;
@@ -1754,13 +1746,13 @@ router.post('/telemetry',function(req,res){
 										// console.log("end"+end);
 										if (timenow >= start && timenow < end && relayState == 1) {
 											updateState(device._id,"off");
-											console.log("device cannot be on at this time");
+											console.log("device blocked for use at this time");
 										}
 									});
 								}
 							});
 							// save samples if there is a measurement programmed
-							saveSamples(device._id, sample);
+							saveSamples(device._id, sample, system_info);
 						} else { // Pairs a new device to this pipe
 							Device.findOne({sync: true}).exec(function(err, device) {
 								if (device) {
@@ -1786,7 +1778,7 @@ router.post('/telemetry',function(req,res){
 	});
 
 	// 2. For each device linked, check if it 
-	function saveSamples(deviceId, sample) {
+	function saveSamples(deviceId, sample, system_info) {
 		Room.findOne({devices: String(deviceId)}).exec(function(err, room){
 			// console.log("room "+room.name);
 			if (room && room.measures.length){
@@ -1794,7 +1786,7 @@ router.post('/telemetry',function(req,res){
 					room.measures.forEach(function(measureId){
 						// console.log(measureId);
 						let now = new Date();
-						now.setTime( now.getTime() - system_info.timezoneoffset ); 
+						// console.log(now);
 						Measure.findOne({_id:measureId,period_start:{$lte:now},period_end:{$gte:now}},{_id:1})
 						.exec(function(err, measure){
 							if (err) console.log(err);
@@ -1811,11 +1803,14 @@ router.post('/telemetry',function(req,res){
 								telemetry.current = irms;
 								let sampleRateInHours = 3/3600; // 3 seconds converted to hour
 								telemetry.consumption = power*sampleRateInHours;
-								telemetry.timestamp = getLocalDate().timestamp;
+								// telemetry.timestamp = getLocalDate().timestamp;
+								var date = new Date();
+								date.setTime(date.getTime() - system_info.timezoneoffset);
+								telemetry.timestamp = date;
 								telemetry.save(function(err){ 
 									if (err) console.log(err);
 									// Also update statistics base on the new data
-									updateStats(measureId, deviceId, room);
+									updateStats(measureId, deviceId, room, measure);
 								});
 
 								// Updates the telemetry field of the device sending data. This will indicate
@@ -1831,7 +1826,7 @@ router.post('/telemetry',function(req,res){
 			}
 		});
 
-		function updateStats (measureId, deviceId, room) {
+		function updateStats (measureId, deviceId, room, measure) {
 			// get tariff values from database
 			var getSystemInfo = function () {
 				return SystemInfo.findById("system_info").exec(function(err,system_info){
@@ -1890,12 +1885,16 @@ router.post('/telemetry',function(req,res){
 							// console.log("peak hour: "+hour._id);
 						}
 					});
-					var standard=0,peak=0,intermediate=0,offpeak=0,standard_best;
-					if (consumption_standard.length > 0) standard = consumption_standard.reduce((previous, current) => current += previous)*system_info.standard_tariff/1000;
-					if (consumption_peak.length > 0) peak = consumption_peak.reduce((previous, current) => current += previous)*system_info.peak_tariff/1000;
-					if (consumption_intermediate.length > 0) intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*system_info.intermediate_tariff/1000;
-					if (consumption_offpeak.length > 0) offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*system_info.offpeak_tariff/1000;
-					if (peak && intermediate && offpeak) standard_best = (peak+intermediate+offpeak) < standard ? false : true;
+					var t_standard = system_info.standard_tariff || 0.34;
+					var t_peak = system_info.peak_tariff || 0.51;
+					var t_intermediate = system_info.intermediate_tariff || 0.28;
+					var t_offpeak = system_info.offpeak_tariff || 0.22;
+					var standard=0, peak=0, intermediate=0, offpeak=0, standard_best;
+					if (consumption_standard.length > 0) standard = consumption_standard.reduce((previous, current) => current += previous)*t_standard/1000;
+					if (consumption_peak.length > 0) peak = consumption_peak.reduce((previous, current) => current += previous)*t_peak/1000;
+					if (consumption_intermediate.length > 0) intermediate = consumption_intermediate.reduce((previous, current) => current += previous)*t_intermediate/1000;
+					if (consumption_offpeak.length > 0) offpeak = consumption_offpeak.reduce((previous, current) => current += previous)*t_offpeak/1000;
+					standard_best = (peak+intermediate+offpeak) < standard ? false : true;
 	
 					Measure.findByIdAndUpdate(measureId,{
 						consumption_per_hour_total: consumption,
@@ -1937,10 +1936,22 @@ router.post('/telemetry',function(req,res){
 				{$match:{measureId: measureId}},
 				{$group:{_id:{$dayOfMonth:"$timestamp"},value:{$sum:"$consumption"}}}
 			]).exec(function(err, consumption){
-				Measure.findByIdAndUpdate(measureId,{
-					consumption_per_day: consumption
-				},function (err) {
-					if (err) console.log(err);
+				var avg = 0;
+				var total = 0;
+				consumption.forEach(function(item){
+					total += item.value;
+				});
+				avg = total/consumption.length;
+				getSystemInfo().then(function(system_info){
+					let tariff = system_info.standard_tariff || 0.34;
+					let bill = total*tariff/1000;
+					Measure.findByIdAndUpdate(measureId,{
+						consumption_per_day: consumption,
+						daily_avg: avg,
+						acc_bill: bill
+					},function (err) {
+						if (err) console.log(err);
+					});
 				});
 			});
 			
@@ -1964,54 +1975,61 @@ router.post('/telemetry',function(req,res){
 
 router.get('/stats/:id',function(req,res){
 	Measure.findById(req.params.id).exec(function(err,measure){
-		Room.findById(measure.roomId,{name:1}).exec(function(err, room){ // get room name
-			function promise_consumption_per_hour(item) {
-				return new Promise (function (resolve, reject){
-					Device.findById(item.deviceId,{name:1}).exec(function(err, device){
-						return resolve({deviceName: device.name, consumption: item.consumption});
-					});
-				});
-			}
-			var promises_consumption_per_hour = []; // device consumption per hour during period (array)
-			measure.consumption_per_hour_device.forEach(function(item){
-				promises_consumption_per_hour.push(promise_consumption_per_hour(item));
-			});
-			Promise.all(promises_consumption_per_hour).then(function (consumption_per_hour_device){
-				// step 1 complete
-				function promise_consumption_total (item){
+		if (measure) {
+			Room.findById(measure.roomId,{name:1}).exec(function(err, room){ // get room name
+				function promise_consumption_per_hour(item) {
 					return new Promise (function (resolve, reject){
-						Device.findById(item._id,{name:1}).exec(function(err, device){
-							return resolve({deviceName: device.name, value: item.value});
+						Device.findById(item.deviceId,{name:1}).exec(function(err, device){
+							return resolve({deviceName: device.name, consumption: item.consumption});
 						});
 					});
 				}
-				var promises_consumption_total = []; // total consumption per device during period (number)
-				measure.consumption_device.forEach(function(item){
-					promises_consumption_total.push(promise_consumption_total(item));
-				})
-				Promise.all(promises_consumption_total).then(function(consumption_device){
-					// step 2 complete
-					res.json({
-						consumption_per_day: measure.consumption_per_day,
-						consumption_per_hour_device: consumption_per_hour_device,
-						consumption_device: consumption_device,
-						// values without device id exchange
-						room: room.name, 
-						period_start: measure.period_start,
-						period_end: measure.period_end,
-						consumption_per_hour_total: measure.consumption_per_hour_total,
-						consumption_total: measure.consumption_total,
-						cost_for_standard_tariff: measure.cost_for_standard_tariff,
-						cost_for_white_tariff: measure.cost_for_white_tariff,
-						is_standard_best: measure.is_standard_best,
-						cost_offpeak: measure.cost_offpeak,
-						cost_intermediate: measure.cost_intermediate,
-						cost_peak: measure.cost_peak,
-						progress: measure.progress
+				var promises_consumption_per_hour = []; // device consumption per hour during period (array)
+				measure.consumption_per_hour_device.forEach(function(item){
+					promises_consumption_per_hour.push(promise_consumption_per_hour(item));
+				});
+				Promise.all(promises_consumption_per_hour).then(function (consumption_per_hour_device){
+					// step 1 complete
+					function promise_consumption_total (item){
+						return new Promise (function (resolve, reject){
+							Device.findById(item._id,{name:1}).exec(function(err, device){
+								return resolve({deviceName: device.name, value: item.value});
+							});
+						});
+					}
+					var promises_consumption_total = []; // total consumption per device during period (number)
+					measure.consumption_device.forEach(function(item){
+						promises_consumption_total.push(promise_consumption_total(item));
+					})
+					Promise.all(promises_consumption_total).then(function(consumption_device){
+						// step 2 complete
+						res.json({
+							consumption_per_day: measure.consumption_per_day,
+							consumption_per_hour_device: consumption_per_hour_device,
+							consumption_device: consumption_device,
+							// values without device id exchange
+							room: room.name, 
+							period_start: measure.period_start,
+							period_end: measure.period_end,
+							consumption_per_hour_total: measure.consumption_per_hour_total,
+							consumption_total: measure.consumption_total,
+							daily_avg: measure.daily_avg,
+							acc_consumption: measure.acc_consumption,
+							acc_bill: measure.acc_bill,
+							prediction_consumption: measure.prediction_consumption,
+							prediction_bill: measure.prediction_bill,
+							cost_for_standard_tariff: measure.cost_for_standard_tariff,
+							cost_for_white_tariff: measure.cost_for_white_tariff,
+							is_standard_best: measure.is_standard_best,
+							cost_offpeak: measure.cost_offpeak,
+							cost_intermediate: measure.cost_intermediate,
+							cost_peak: measure.cost_peak,
+							progress: measure.progress
+						});
 					});
 				});
 			});
-		});
+		}
 	});
 });
 

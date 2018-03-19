@@ -38,103 +38,174 @@ myApp.controller('StatisticsController', ['$scope', '$interval','$http', '$locat
 		// if (!statsController.measureId) alert("measure id not obtained");
 		$http.get('/api/stats/'+statsController.measureId).then(function(response) {
 			statsController.measure = response.data;
-			var apiDataPointsGeneral = response.data.consumption_per_hour_total;
-			var apiDataPointsDevices = response.data.consumption_per_hour_device;
-			statsController.data_available = response.data ? true : false;
-			// statsController.excess_consumption = response.data.excess;
-			
-			var generalXPoints = [];
-			var datasets = [];
-			var bgcolorGeneralPoints = [];
-			var labels = [];
-			for (let hour=0; hour<=23; hour++){
-				let bin = hour+1;
-				labels.push(hour+"h");
-				// Fill in series for total consumption
-				let generalPointExists = false;
-				apiDataPointsGeneral.forEach(function (item, index) {
-					if (item._id == hour) { //item._id = hour of day
-						generalPointExists = true;
-						generalXPoints.push(item.value.toFixed(2));
-						bgcolorGeneralPoints.push(Object.values(chartColors)[0]);
-						
-						// let highlight = false;
-						// statsController.excess_consumption.forEach(function (excess_item){
-						// 	if (excess_item._id == item._id)
-						// 		highlight = true;
-						// });
-						// if (highlight) bgcolor.push('red');
-						// else bgcolor.push('rgba(75, 192, 230, 0.8)');
+			draw_chart_hour();
+			draw_chart_day();
+			function draw_chart_day() {
+				apiDataPoints = response.data.consumption_per_day;
+				let datenow = new Date(Date.now());
+				var daysOfMonth = new Date(datenow.getFullYear(),datenow.getMonth()+1,0);
+
+				var datapoints = {
+					x:[],
+					y:[]
+				};
+				var avgbgcolor = [];
+				var bgcolor = [];
+				
+				for (let i=1; i<=daysOfMonth.getDate(); i++){
+					datapoints.x.push(0);
+					avgbgcolor.push('rgba(0, 0, 0, 0.5)');
+					bgcolor.push('rgba(75, 234, 40, 0.8)');
+					datapoints.y.push(i);
+					apiDataPoints.forEach(function (item) {
+						if (datapoints.y[i-1]==item._id) { // _id = day of month
+							datapoints.x[i-1]=item.value.toFixed(2);
+						} 
+					});
+				}
+				// {
+				// 	type: 'line',
+				// 	label: 'Média no mês',
+				// 	fill: false,
+				// 	backgroundColor: 'grey',
+				// 	data: datapoints.avg,
+				// 	borderColor: 'grey',
+				// 	borderWidth: 2,
+				// }
+				var chartData = {
+					labels: datapoints.y,
+					datasets: [{
+						type: 'bar',
+						label: 'Wh por dia',
+						backgroundColor: bgcolor,
+						borderWidth: 2,
+						fill: false,
+						data: datapoints.x,
+					}]
+				};
+
+				if (statsController.dailyConsumptionChart) // Prevents double chart bug
+					statsController.dailyConsumptionChart.destroy();
+				var ctx = document.getElementById("dailyConsumptionChart");
+				statsController.dailyConsumptionChart = new Chart(ctx, {
+					type: 'bar',
+					data: chartData,
+					options: {
+						animation: false,
+						elements: {
+							point: {
+								radius: 0
+							}
+						},
+						scales: {
+							yAxes: [{
+								ticks: {
+									beginAtZero:true
+								}
+							}]
+						}
 					}
 				});
-				if (!generalPointExists) {
-					generalXPoints.push(0);
-					bgcolorGeneralPoints.push(Object.values(chartColors)[0]);
-				}
 			}
-
-			// Fill in individual series for each device
-			apiDataPointsDevices.forEach(function(device, index){
-				var deviceXPoints = [];
+			function draw_chart_hour() {
+				var apiDataPointsGeneral = response.data.consumption_per_hour_total;
+				var apiDataPointsDevices = response.data.consumption_per_hour_device;
+				statsController.data_available = response.data ? true : false;
+				// statsController.excess_consumption = response.data.excess;
+				
+				var generalXPoints = [];
+				var datasets = [];
+				var bgcolorGeneralPoints = [];
+				var labels = [];
 				for (let hour=0; hour<=23; hour++){
-					let devicePointExists = false;
-					device.consumption.forEach(function(item){
+					let bin = hour+1;
+					labels.push(hour+"h");
+					// Fill in series for total consumption
+					let generalPointExists = false;
+					apiDataPointsGeneral.forEach(function (item, index) {
 						if (item._id == hour) { //item._id = hour of day
-							devicePointExists = true;
-							deviceXPoints.push(item.value.toFixed(2));
+							generalPointExists = true;
+							generalXPoints.push(item.value.toFixed(2));
+							bgcolorGeneralPoints.push(Object.values(chartColors)[0]);
+							
+							// let highlight = false;
+							// statsController.excess_consumption.forEach(function (excess_item){
+							// 	if (excess_item._id == item._id)
+							// 		highlight = true;
+							// });
+							// if (highlight) bgcolor.push('red');
+							// else bgcolor.push('rgba(75, 192, 230, 0.8)');
 						}
 					});
-					if (!devicePointExists) {
-						deviceXPoints.push(0);
+					if (!generalPointExists) {
+						generalXPoints.push(0);
+						bgcolorGeneralPoints.push(Object.values(chartColors)[0]);
 					}
 				}
-				// Push individual device series
-				datasets.push({
-					type: 'line',
-					label: device.deviceName, //device name as per the api
-					borderColor: Object.values(chartColors)[index+1],
-					borderWidth: 2,
-					data: deviceXPoints,
-					fill: false
-				});
-			});
-			// Push ALL_Devices series
-			datasets.push({
-				type: 'bar',
-				label: 'Todos',
-				backgroundColor: bgcolorGeneralPoints,
-				borderWidth: 2,
-				data: generalXPoints
-			});
 
-			var chartData = {
-				labels: labels,
-				datasets: datasets
-			}
-
-			if (statsController.hourlyConsumptionChartForMonth) // Prevents double chart bug
-				statsController.hourlyConsumptionChartForMonth.destroy();
-			var ctx = document.getElementById("dailyConsumptionChart");
-			var ctx = document.getElementById("hourlyConsumptionChartForMonth");
-			statsController.hourlyConsumptionChartForMonth = new Chart(ctx, {
-				type: 'bar',
-				data: chartData,
-				options: {
-					animation: false,
-					elements: {
-						point: {
-							radius: 2
-						}
-					},
-					scales: {
-						yAxes: [{
-							ticks: {
-								beginAtZero:true
+				// Fill in individual series for each device
+				apiDataPointsDevices.forEach(function(device, index){
+					var deviceXPoints = [];
+					for (let hour=0; hour<=23; hour++){
+						let devicePointExists = false;
+						device.consumption.forEach(function(item){
+							if (item._id == hour) { //item._id = hour of day
+								devicePointExists = true;
+								deviceXPoints.push(item.value.toFixed(2));
 							}
-						}]
+						});
+						if (!devicePointExists) {
+							deviceXPoints.push(0);
+						}
 					}
+					// Push individual device series
+					datasets.push({
+						type: 'line',
+						label: device.deviceName, //device name as per the api
+						borderColor: Object.values(chartColors)[index+1],
+						borderWidth: 2,
+						data: deviceXPoints,
+						fill: false
+					});
+				});
+				// Push ALL_Devices series
+				datasets.push({
+					type: 'bar',
+					label: 'Todos',
+					backgroundColor: bgcolorGeneralPoints,
+					borderWidth: 2,
+					data: generalXPoints
+				});
+
+				var chartData = {
+					labels: labels,
+					datasets: datasets
 				}
-			});
+
+				if (statsController.hourlyConsumptionChartForMonth) // Prevents double chart bug
+					statsController.hourlyConsumptionChartForMonth.destroy();
+				// var ctx = document.getElementById("dailyConsumptionChart");
+				var ctx = document.getElementById("hourlyConsumptionChartForMonth");
+				statsController.hourlyConsumptionChartForMonth = new Chart(ctx, {
+					type: 'bar',
+					data: chartData,
+					options: {
+						animation: false,
+						elements: {
+							point: {
+								radius: 2
+							}
+						},
+						scales: {
+							yAxes: [{
+								ticks: {
+									beginAtZero:true
+								}
+							}]
+						}
+					}
+				});
+			}
 		});
 	}
 
