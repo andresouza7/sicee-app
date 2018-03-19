@@ -1785,9 +1785,10 @@ router.post('/telemetry',function(req,res){
 				SystemInfo.findById("system_info").exec(function(err,system_info){
 					room.measures.forEach(function(measureId){
 						// console.log(measureId);
-						let now = new Date();
+						let sampleTime = new Date();
+						sampleTime.setTime( sampleTime.getTime() - sampleTime.getTimezoneOffset()); 
 						// console.log(now);
-						Measure.findOne({_id:measureId,period_start:{$lte:now},period_end:{$gte:now}},{_id:1})
+						Measure.findOne({_id:measureId,period_start:{$lte:sampleTime},period_end:{$gte:sampleTime}},{_id:1})
 						.exec(function(err, measure){
 							if (err) console.log(err);
 							if (measure) {
@@ -1808,6 +1809,7 @@ router.post('/telemetry',function(req,res){
 								date.setTime(date.getTime() - system_info.timezoneoffset);
 								telemetry.timestamp = date;
 								telemetry.save(function(err){ 
+									console.log("telemetry saved");
 									if (err) console.log(err);
 									// Also update statistics base on the new data
 									updateStats(measureId, deviceId, room, measure);
