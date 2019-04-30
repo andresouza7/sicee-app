@@ -174,8 +174,8 @@ function createAgendaJob (jobName,deviceId,execTime,action) {
 function smsAlert (username, phone, msg) {
 	// Implement code here to search the database for twilio
 	// account information...
-	var accountSid = 'ACb0e73e47de7ee5b38ae6017ce90d5dff'; // Your Account SID from www.twilio.com/console
-	var authToken = 'eeb9b7799954136b89a6a13852badd5f';   // Your Auth Token from www.twilio.com/console
+	var accountSid = 'accountSid'; // Your Account SID from www.twilio.com/console
+	var authToken = 'authToken';   // Your Auth Token from www.twilio.com/console
 
 	var twilio = require('twilio');
 	var client = new twilio(accountSid, authToken);
@@ -183,7 +183,7 @@ function smsAlert (username, phone, msg) {
 	client.messages.create({
 	    body: msg,
 	    to: phone,  // Text this number
-	    from: '+12818237943' // From a valid Twilio number
+	    from: 'number' // From a valid Twilio number
 	})
 	.then((message) => console.log(message.sid));
 }
@@ -675,16 +675,16 @@ router.get('/devices', function(req, res){
 
 // SMS MESSAGING SERVICE
 router.post('/smsAlert',function(req, res){
-	var accountSid = 'ACb0e73e47de7ee5b38ae6017ce90d5dff'; // Your Account SID from www.twilio.com/console
-	var authToken = 'eeb9b7799954136b89a6a13852badd5f';   // Your Auth Token from www.twilio.com/console
+	var accountSid = 'accountSid'; // Your Account SID from www.twilio.com/console
+	var authToken = 'authToken';   // Your Auth Token from www.twilio.com/console
 
 	var twilio = require('twilio');
 	var client = new twilio(accountSid, authToken);
 
 	client.messages.create({
 	    body: 'sicee: power off on meter 1',
-	    to: '+5596981150386',  // Text this number
-	    from: '+12818237943' // From a valid Twilio number
+	    to: 'number',  // Text this number
+	    from: 'number' // From a valid Twilio number
 	})
 	.then((message) => console.log(message.sid));
 	res.send(200);
